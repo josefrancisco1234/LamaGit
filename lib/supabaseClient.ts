@@ -4,6 +4,12 @@ import type { Database } from '@/types/database'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 
+// Debug: Log if running with placeholder values
+if (typeof window !== 'undefined') {
+  console.log('[Supabase] URL configured:', supabaseUrl.includes('placeholder') ? 'NO - using placeholder!' : 'Yes')
+  console.log('[Supabase] Key configured:', supabaseAnonKey === 'placeholder-key' ? 'NO - using placeholder!' : 'Yes')
+}
+
 // Check if Supabase is properly configured
 export const isSupabaseConfigured =
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
