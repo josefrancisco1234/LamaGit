@@ -63,17 +63,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ---------------------------------------------------------------------------
   // fetchUserData - Carga el perfil y billetera del usuario desde Supabase
   // ---------------------------------------------------------------------------
+  // USA FETCH DIRECTO porque el cliente Supabase se cuelga en Vercel
   const fetchUserData = React.useCallback(async (userId: string) => {
     try {
-      // Promise.all ejecuta ambas consultas en paralelo (mas rapido)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (!supabaseUrl || !supabaseKey) return
+
+      // Obtener access token de localStorage para RLS
+      let accessToken = supabaseKey
+      if (typeof window !== 'undefined') {
+        try {
+          const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
+          const stored = localStorage.getItem(storageKey)
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            accessToken = parsed?.access_token || supabaseKey
+          }
+        } catch (e) { /* usar anon key */ }
+      }
+
+      const headers = {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      }
+
+      // Fetch paralelo con timeout de 5 segundos
+      const fetchWithTimeout = (url: string) =>
+        Promise.race([
+          fetch(url, { headers }),
+          new Promise<Response>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+          )
+        ])
+
       const [profileRes, walletRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", userId).single(),
-        supabase.from("wallets").select("*").eq("user_id", userId).single(),
+        fetchWithTimeout(`${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`),
+        fetchWithTimeout(`${supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}&select=*`),
       ])
 
-      // Guardar los datos en el estado
-      if (profileRes.data) setProfile(profileRes.data)
-      if (walletRes.data) setWallet(walletRes.data)
+      if (profileRes.ok) {
+        const data = await profileRes.json()
+        if (data?.[0]) setProfile(data[0])
+      }
+      if (walletRes.ok) {
+        const data = await walletRes.json()
+        if (data?.[0]) setWallet(data[0])
+      }
+      console.log('[fetchUserData] Loaded profile and wallet via fetch')
     } catch (error) {
       console.error("Error fetching user data:", error)
     }
@@ -199,10 +237,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user)
           // Cargar datos del usuario
           await fetchUserData(session.user.id)
-          if (event === 'INITIAL_SESSION') {
-            initialSessionProcessed = true
-            setLoading(false)
-          }
+          // Desbloquear loading con cualquier evento que tenga usuario
+          initialSessionProcessed = true
+          setLoading(false)
         } else if (event === 'INITIAL_SESSION') {
           // ---------------------------------------------------------------------------
           // FALLBACK: Si INITIAL_SESSION no tiene sesion, intentar localStorage
