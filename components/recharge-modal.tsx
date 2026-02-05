@@ -105,7 +105,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     }
 
     try {
-      await walletAdd(amount)
+      await walletAdd(amount, user.id)
       await refreshWallet()
       setState("approved")
 

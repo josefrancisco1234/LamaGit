@@ -54,33 +54,39 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Prom
   ])
 }
 
-export async function walletAdd(amount: number): Promise<number> {
+export async function walletAdd(amount: number, userId?: string): Promise<number> {
   try {
-    console.log('[walletAdd] Starting with amount:', amount)
+    console.log('[walletAdd] Starting with amount:', amount, 'userId:', userId)
 
-    // Try to get session with timeout (3 seconds max)
-    console.log('[walletAdd] Getting session...')
-    let session
-    try {
-      const result = await withTimeout(
-        supabase.auth.getSession(),
-        3000,
-        'Session timeout - Supabase getSession took too long'
-      )
-      session = result.data.session
-      console.log('[walletAdd] Session retrieved:', session ? 'yes' : 'no')
-    } catch (timeoutError) {
-      console.error('[walletAdd] Session timeout:', timeoutError)
-      throw timeoutError
+    // If userId is provided, use it directly (faster, no network call)
+    // Otherwise, try to get from session (fallback)
+    let finalUserId = userId
+
+    if (!finalUserId) {
+      console.log('[walletAdd] No userId provided, trying localStorage...')
+
+      // Try to get user ID from localStorage directly (no network call)
+      if (typeof window !== 'undefined') {
+        try {
+          const storageKey = `sb-${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').hostname.split('.')[0]}-auth-token`
+          const stored = localStorage.getItem(storageKey)
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            finalUserId = parsed?.user?.id
+            console.log('[walletAdd] Got userId from localStorage:', finalUserId)
+          }
+        } catch (e) {
+          console.log('[walletAdd] Could not parse localStorage:', e)
+        }
+      }
     }
 
-    if (!session?.user) {
-      console.error('[walletAdd] No session/user found')
+    if (!finalUserId) {
+      console.error('[walletAdd] No user ID available')
       throw new Error('Not authenticated')
     }
 
-    const user = session.user
-    console.log('[walletAdd] User ID:', user.id)
+    console.log('[walletAdd] User ID:', finalUserId)
 
     // Get current balance with timeout
     console.log('[walletAdd] Fetching wallet...')
@@ -89,7 +95,7 @@ export async function walletAdd(amount: number): Promise<number> {
         supabase
           .from('wallets')
           .select('balance')
-          .eq('user_id', user.id)
+          .eq('user_id', finalUserId)
           .single()
       ),
       5000,
@@ -124,7 +130,7 @@ export async function walletAdd(amount: number): Promise<number> {
         supabase
           .from('wallets')
           .update({ balance: newBalance } as never)
-          .eq('user_id', user.id)
+          .eq('user_id', finalUserId)
           .select('balance')
           .single()
       ),

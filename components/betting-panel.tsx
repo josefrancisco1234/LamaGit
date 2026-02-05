@@ -139,7 +139,7 @@ export function BettingPanel() {
 
       // Credit winnings async (don't wait)
       if (won && !demo && userRef.current) {
-        walletAdd(payout).then(() => refreshWallet()).catch(console.error)
+        walletAdd(payout, userRef.current.id).then(() => refreshWallet()).catch(console.error)
       } else if (!demo && userRef.current) {
         refreshWallet().catch(console.error)
       }
@@ -230,7 +230,7 @@ export function BettingPanel() {
       // Credit winnings if won (and not demo)
       if (won && !demo && userRef.current) {
         try {
-          await walletAdd(payout)
+          await walletAdd(payout, userRef.current.id)
           await refreshWallet()
         } catch (error) {
           console.error("Error crediting winnings:", error)
@@ -326,7 +326,7 @@ export function BettingPanel() {
     if (!demo && userRef.current) {
       try {
         console.log("[DEBUG] Deducting bet:", currentBet)
-        await walletAdd(-currentBet)
+        await walletAdd(-currentBet, userRef.current.id)
         console.log("[DEBUG] Bet deducted successfully")
         await refreshWallet()
         console.log("[DEBUG] Wallet refreshed")
