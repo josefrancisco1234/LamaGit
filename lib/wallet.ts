@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient'
 
+// Type for wallet balance response
+type WalletBalance = { balance: number }
+
 /**
  * Check if an error is an AbortError (happens when tab is hidden)
  */
@@ -28,7 +31,7 @@ export async function getBalance(): Promise<number> {
       .single()
 
     if (error || !data) return 0
-    return Number(data.balance ?? 0)
+    return Number((data as WalletBalance).balance ?? 0)
   } catch (e) {
     if (!isAbortError(e)) {
       console.error('getBalance error:', e)
@@ -41,18 +44,36 @@ export async function getBalance(): Promise<number> {
  * Add or subtract from the wallet balance
  * Uses direct update instead of RPC for simplicity
  */
+// Helper to add timeout to promises
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMsg)), ms)
+    )
+  ])
+}
+
 export async function walletAdd(amount: number): Promise<number> {
   try {
     console.log('[walletAdd] Starting with amount:', amount)
 
-    // Use getSession instead of getUser - it's faster and uses cached data
+    // Try to get session with timeout (3 seconds max)
     console.log('[walletAdd] Getting session...')
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError) {
-      console.error('[walletAdd] Session error:', sessionError)
-      throw new Error('Session error: ' + sessionError.message)
+    let session
+    try {
+      const result = await withTimeout(
+        supabase.auth.getSession(),
+        3000,
+        'Session timeout - Supabase getSession took too long'
+      )
+      session = result.data.session
+      console.log('[walletAdd] Session retrieved:', session ? 'yes' : 'no')
+    } catch (timeoutError) {
+      console.error('[walletAdd] Session timeout:', timeoutError)
+      throw timeoutError
     }
+
     if (!session?.user) {
       console.error('[walletAdd] No session/user found')
       throw new Error('Not authenticated')
@@ -61,12 +82,19 @@ export async function walletAdd(amount: number): Promise<number> {
     const user = session.user
     console.log('[walletAdd] User ID:', user.id)
 
-    // Get current balance
-    const { data: wallet, error: fetchError } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('user_id', user.id)
-      .single()
+    // Get current balance with timeout
+    console.log('[walletAdd] Fetching wallet...')
+    const { data: wallet, error: fetchError } = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', user.id)
+          .single()
+      ),
+      5000,
+      'Wallet fetch timeout'
+    ) as { data: WalletBalance | null; error: { message: string } | null }
 
     if (fetchError) {
       console.error('[walletAdd] Fetch wallet error:', fetchError)
@@ -76,9 +104,10 @@ export async function walletAdd(amount: number): Promise<number> {
       console.error('[walletAdd] No wallet found for user')
       throw new Error('Wallet not found')
     }
-    console.log('[walletAdd] Current balance:', wallet.balance)
+    const walletData = wallet as WalletBalance
+    console.log('[walletAdd] Current balance:', walletData.balance)
 
-    const currentBalance = Number(wallet.balance)
+    const currentBalance = Number(walletData.balance)
     const newBalance = Number((currentBalance + amount).toFixed(2))
     console.log('[walletAdd] New balance will be:', newBalance)
 
@@ -88,22 +117,29 @@ export async function walletAdd(amount: number): Promise<number> {
       throw new Error('Insufficient balance')
     }
 
-    // Update balance
+    // Update balance with timeout
     console.log('[walletAdd] Updating balance...')
-    const { data, error } = await supabase
-      .from('wallets')
-      .update({ balance: newBalance })
-      .eq('user_id', user.id)
-      .select('balance')
-      .single()
+    const { data, error } = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('wallets')
+          .update({ balance: newBalance } as never)
+          .eq('user_id', user.id)
+          .select('balance')
+          .single()
+      ),
+      5000,
+      'Wallet update timeout'
+    ) as { data: WalletBalance | null; error: { message: string } | null }
 
     if (error) {
       console.error('[walletAdd] Update error:', error)
       throw new Error('Update error: ' + error.message + ' (Check RLS UPDATE policy)')
     }
 
-    console.log('[walletAdd] Success! New balance:', data?.balance)
-    return Number(data?.balance ?? newBalance)
+    const updatedData = data as WalletBalance | null
+    console.log('[walletAdd] Success! New balance:', updatedData?.balance)
+    return Number(updatedData?.balance ?? newBalance)
   } catch (e) {
     if (isAbortError(e)) {
       return 0
