@@ -1,33 +1,57 @@
-"use client"
+// =============================================================================
+// AUTH-PROVIDER.TSX - Contexto de Autenticacion Global
+// =============================================================================
+// Este archivo maneja todo el estado de autenticacion de la aplicacion.
+// Usa React Context para compartir el estado del usuario en toda la app.
+// =============================================================================
+
+"use client" // Indica que este componente se ejecuta en el cliente (browser)
 
 import * as React from "react"
-import { User, Session } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabaseClient"
-import type { Profile, Wallet } from "@/types/database"
+import { User, Session } from "@supabase/supabase-js" // Tipos de Supabase
+import { supabase } from "@/lib/supabaseClient" // Cliente de Supabase
+import type { Profile, Wallet } from "@/types/database" // Tipos de nuestra BD
 
+// =============================================================================
+// TIPOS - Define la estructura del contexto de autenticacion
+// =============================================================================
 interface AuthContextType {
-  user: User | null
-  profile: Profile | null
-  wallet: Wallet | null
-  loading: boolean
+  user: User | null              // Usuario actual de Supabase (email, id, etc)
+  profile: Profile | null        // Perfil del usuario (username, etc)
+  wallet: Wallet | null          // Billetera del usuario (balance, etc)
+  loading: boolean               // true mientras carga la sesion inicial
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signUp: (email: string, password: string, username: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
-  refreshWallet: () => Promise<void>
+  refreshWallet: () => Promise<void> // Actualiza el balance desde la BD
 }
 
+// Crea el contexto con valor inicial undefined
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
+// =============================================================================
+// COMPONENTE PRINCIPAL: AuthProvider
+// =============================================================================
+// Envuelve toda la aplicacion y proporciona el estado de autenticacion
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<User | null>(null)
-  const [profile, setProfile] = React.useState<Profile | null>(null)
-  const [wallet, setWallet] = React.useState<Wallet | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  // ---------------------------------------------------------------------------
+  // ESTADO - Variables que guardan la informacion del usuario
+  // ---------------------------------------------------------------------------
+  const [user, setUser] = React.useState<User | null>(null)       // Usuario de Supabase
+  const [profile, setProfile] = React.useState<Profile | null>(null) // Perfil de BD
+  const [wallet, setWallet] = React.useState<Wallet | null>(null)    // Billetera de BD
+  const [loading, setLoading] = React.useState(true)                 // Estado de carga
 
-  // Refs to prevent stale closures
+  // ---------------------------------------------------------------------------
+  // REFS - Referencias para evitar "stale closures" en callbacks
+  // ---------------------------------------------------------------------------
+  // Problema: Cuando usas una variable de estado en un callback async,
+  // el callback puede tener una version "vieja" de la variable.
+  // Solucion: Usar refs que siempre tienen el valor actual.
   const userRef = React.useRef(user)
   const walletRef = React.useRef(wallet)
 
+  // Mantener las refs sincronizadas con el estado
   React.useEffect(() => {
     userRef.current = user
   }, [user])
@@ -36,13 +60,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     walletRef.current = wallet
   }, [wallet])
 
+  // ---------------------------------------------------------------------------
+  // fetchUserData - Carga el perfil y billetera del usuario desde Supabase
+  // ---------------------------------------------------------------------------
   const fetchUserData = React.useCallback(async (userId: string) => {
     try {
+      // Promise.all ejecuta ambas consultas en paralelo (mas rapido)
       const [profileRes, walletRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
         supabase.from("wallets").select("*").eq("user_id", userId).single(),
       ])
 
+      // Guardar los datos en el estado
       if (profileRes.data) setProfile(profileRes.data)
       if (walletRes.data) setWallet(walletRes.data)
     } catch (error) {
@@ -50,50 +79,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // ---------------------------------------------------------------------------
+  // refreshWallet - Actualiza el balance del usuario
+  // ---------------------------------------------------------------------------
+  // IMPORTANTE: Usa fetch() directo en lugar del cliente Supabase
+  // porque el cliente Supabase se colgaba en Vercel (ver wallet.ts para detalles)
   const refreshWallet = React.useCallback(async () => {
-    const currentUser = userRef.current
-    if (!currentUser) return
+    const currentUser = userRef.current // Usar ref para evitar stale closure
+    if (!currentUser) return // Si no hay usuario, no hacer nada
 
     try {
-      // Use fetch directly to bypass Supabase client timeout issues on Vercel
+      // Obtener las variables de entorno de Supabase
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-      // Get user's access token from localStorage
+      // ---------------------------------------------------------------------------
+      // CLAVE: Obtener el JWT access_token del localStorage
+      // ---------------------------------------------------------------------------
+      // Sin este token, Supabase RLS no sabe quien es el usuario y retorna []
       let accessToken = supabaseKey || ''
       if (typeof window !== 'undefined') {
         try {
+          // La key de Supabase en localStorage es: sb-{project-ref}-auth-token
           const storageKey = `sb-${new URL(supabaseUrl || '').hostname.split('.')[0]}-auth-token`
           const stored = localStorage.getItem(storageKey)
           if (stored) {
             const parsed = JSON.parse(stored)
+            // El token JWT esta en la propiedad access_token
             accessToken = parsed?.access_token || supabaseKey || ''
           }
         } catch (e) {
-          // Use anon key as fallback
+          // Si falla, usar anon key (no funcionara con RLS)
         }
       }
 
+      // ---------------------------------------------------------------------------
+      // Llamada directa al REST API de Supabase
+      // ---------------------------------------------------------------------------
+      // URL: {supabase_url}/rest/v1/{tabla}?{filtros}
       const response = await fetch(
         `${supabaseUrl}/rest/v1/wallets?user_id=eq.${currentUser.id}&select=*`,
         {
           headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${accessToken}`,
+            'apikey': supabaseKey || '',              // Siempre requerido
+            'Authorization': `Bearer ${accessToken}`, // JWT para RLS
             'Content-Type': 'application/json',
           },
         }
       )
 
+      // Si la respuesta es exitosa, actualizar el estado
       if (response.ok) {
         const data = await response.json()
         if (data?.[0]) {
           console.log('[refreshWallet] Updated balance:', data[0].balance)
-          setWallet(data[0])
+          setWallet(data[0]) // Actualiza el estado -> UI se re-renderiza
         }
       }
     } catch (error) {
-      // Check if it's an abort error (expected when switching tabs)
+      // Ignorar AbortError (ocurre al cambiar de pestana, es normal)
       const err = error as { name?: string; message?: string }
       const isAbort = err?.name === 'AbortError' ||
         (err?.message?.includes('aborted') ?? false) ||
@@ -105,12 +149,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Initialize auth state
+  // ---------------------------------------------------------------------------
+  // EFFECT: Inicializar autenticacion al montar el componente
+  // ---------------------------------------------------------------------------
   React.useEffect(() => {
     const initAuth = async () => {
       try {
+        // Intentar obtener la sesion existente (de localStorage)
         const { data: { session } } = await supabase.auth.getSession()
 
+        // Si hay sesion, cargar los datos del usuario
         if (session?.user) {
           setUser(session.user)
           await fetchUserData(session.user.id)
@@ -118,21 +166,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Error initializing auth:", error)
       } finally {
-        setLoading(false)
+        setLoading(false) // Ya termino de cargar (con o sin usuario)
       }
     }
 
     initAuth()
 
-    // Listen for auth changes
+    // ---------------------------------------------------------------------------
+    // Suscribirse a cambios de autenticacion
+    // ---------------------------------------------------------------------------
+    // Esto se dispara cuando: login, logout, token refresh, etc.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event)
+        console.log("Auth state changed:", event) // INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, etc.
 
         if (session?.user) {
           setUser(session.user)
           await fetchUserData(session.user.id)
         } else {
+          // Limpiar todo cuando no hay sesion
           setUser(null)
           setProfile(null)
           setWallet(null)
@@ -140,15 +192,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
+    // Cleanup: desuscribirse cuando el componente se desmonta
     return () => {
       subscription.unsubscribe()
     }
   }, [fetchUserData])
 
-  // Handle visibility change for session refresh (Alt+Tab recovery)
-  // ALWAYS refresh when tab becomes visible to ensure connection is alive
+  // ---------------------------------------------------------------------------
+  // EFFECT: Manejar Alt+Tab (visibilidad de la pestana)
+  // ---------------------------------------------------------------------------
+  // Cuando el usuario vuelve a la pestana, refrescar sesion y wallet
+  // Esto evita problemas con tokens expirados
   React.useEffect(() => {
-    // Check if error is an AbortError (expected when switching tabs)
+    // Helper para detectar AbortError
     const isAbortError = (error: unknown): boolean => {
       if (!error || typeof error !== 'object') return false
       const err = error as { name?: string; message?: string }
@@ -159,14 +215,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       )
     }
 
+    // Handler cuando la pestana se vuelve visible
     const handleVisibilityChange = async () => {
       if (!document.hidden && userRef.current) {
-        // Tab is now visible - refresh session and wallet
         try {
-          await supabase.auth.refreshSession()
-          await refreshWallet()
+          await supabase.auth.refreshSession() // Refrescar token
+          await refreshWallet()                 // Refrescar balance
         } catch (error) {
-          // Silently ignore abort errors (expected when switching tabs)
           if (!isAbortError(error)) {
             console.error("Error refreshing on visibility change:", error)
           }
@@ -174,13 +229,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Handler cuando la ventana recibe foco
     const handleFocus = async () => {
       if (userRef.current) {
         try {
           await supabase.auth.refreshSession()
           await refreshWallet()
         } catch (error) {
-          // Silently ignore abort errors
           if (!isAbortError(error)) {
             console.error("Error refreshing on focus:", error)
           }
@@ -188,33 +243,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Agregar event listeners
     document.addEventListener("visibilitychange", handleVisibilityChange)
     window.addEventListener("focus", handleFocus)
 
+    // Cleanup: remover event listeners
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       window.removeEventListener("focus", handleFocus)
     }
   }, [refreshWallet])
 
+  // ---------------------------------------------------------------------------
+  // signIn - Iniciar sesion con email y password
+  // ---------------------------------------------------------------------------
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
+      // Retornar error o null si fue exitoso
       return { error: error ? new Error(error.message) : null }
     } catch (error) {
       return { error: error as Error }
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // signUp - Registrar nuevo usuario
+  // ---------------------------------------------------------------------------
   const signUp = async (email: string, password: string, username: string) => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          // data se guarda en raw_user_meta_data
+          // El trigger de Supabase lo usa para crear el profile
           data: { username },
         },
       })
@@ -224,9 +290,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // signOut - Cerrar sesion
+  // ---------------------------------------------------------------------------
   const signOut = async () => {
     try {
-      // Clear local storage keys related to Supabase
+      // Limpiar localStorage de Supabase (tokens, sesion, etc)
       if (typeof window !== "undefined") {
         const keysToRemove = Object.keys(localStorage).filter(
           (key) =>
@@ -237,7 +306,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         keysToRemove.forEach((key) => localStorage.removeItem(key))
       }
 
+      // Cerrar sesion en Supabase (scope: "local" = solo este dispositivo)
       await supabase.auth.signOut({ scope: "local" })
+
+      // Limpiar estado
       setUser(null)
       setProfile(null)
       setWallet(null)
@@ -246,6 +318,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // RENDER - Proveer el contexto a los hijos
+  // ---------------------------------------------------------------------------
   return (
     <AuthContext.Provider
       value={{
@@ -264,6 +339,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// =============================================================================
+// HOOK: useAuth - Para usar el contexto en cualquier componente
+// =============================================================================
+// Uso: const { user, wallet, signIn, signOut } = useAuth()
 export function useAuth() {
   const context = React.useContext(AuthContext)
   if (!context) {
