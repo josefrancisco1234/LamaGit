@@ -115,6 +115,22 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+    // Get user's access token from localStorage for RLS authentication
+    let accessToken = supabaseKey || ''
+    if (typeof window !== 'undefined') {
+      try {
+        const storageKey = `sb-${new URL(supabaseUrl || '').hostname.split('.')[0]}-auth-token`
+        const stored = localStorage.getItem(storageKey)
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          accessToken = parsed?.access_token || supabaseKey || ''
+          console.log('[walletAdd] Using user access token for RLS')
+        }
+      } catch (e) {
+        console.log('[walletAdd] Could not get access token, using anon key')
+      }
+    }
+
     const fetchResponse = await withRetry(
       () => withTimeout(
         fetch(
@@ -122,7 +138,7 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
           {
             headers: {
               'apikey': supabaseKey || '',
-              'Authorization': `Bearer ${supabaseKey}`,
+              'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
           }
@@ -174,7 +190,7 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
             method: 'PATCH',
             headers: {
               'apikey': supabaseKey || '',
-              'Authorization': `Bearer ${supabaseKey}`,
+              'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
               'Prefer': 'return=representation',
             },
