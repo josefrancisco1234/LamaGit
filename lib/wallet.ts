@@ -45,15 +45,20 @@ export async function walletAdd(amount: number): Promise<number> {
   try {
     console.log('[walletAdd] Starting with amount:', amount)
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError) {
-      console.error('[walletAdd] Auth error:', authError)
-      throw new Error('Auth error: ' + authError.message)
+    // Use getSession instead of getUser - it's faster and uses cached data
+    console.log('[walletAdd] Getting session...')
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      console.error('[walletAdd] Session error:', sessionError)
+      throw new Error('Session error: ' + sessionError.message)
     }
-    if (!user) {
-      console.error('[walletAdd] No user found')
+    if (!session?.user) {
+      console.error('[walletAdd] No session/user found')
       throw new Error('Not authenticated')
     }
+
+    const user = session.user
     console.log('[walletAdd] User ID:', user.id)
 
     // Get current balance
