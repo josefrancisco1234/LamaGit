@@ -325,13 +325,24 @@ export function BettingPanel() {
     // Deduct bet for real bets
     if (!demo && userRef.current) {
       try {
+        console.log("[DEBUG] Deducting bet:", currentBet)
         await walletAdd(-currentBet)
+        console.log("[DEBUG] Bet deducted successfully")
         await refreshWallet()
+        console.log("[DEBUG] Wallet refreshed")
       } catch (error) {
-        console.error("Error deducting bet:", error)
+        console.error("[DEBUG] Error deducting bet:", error)
+        const errMsg = error instanceof Error ? error.message : "Error desconocido"
         isRollingRef.current = false
         setRolling(false)
-        setUiError("Error al procesar la apuesta")
+        setUiError(`Error: ${errMsg}`)
+        toast({
+          title: "Error al apostar",
+          description: errMsg.includes("policy")
+            ? "Falta configurar permisos en la base de datos (RLS UPDATE policy)"
+            : errMsg,
+          variant: "destructive",
+        })
         return
       }
     }

@@ -43,8 +43,18 @@ export async function getBalance(): Promise<number> {
  */
 export async function walletAdd(amount: number): Promise<number> {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+    console.log('[walletAdd] Starting with amount:', amount)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError) {
+      console.error('[walletAdd] Auth error:', authError)
+      throw new Error('Auth error: ' + authError.message)
+    }
+    if (!user) {
+      console.error('[walletAdd] No user found')
+      throw new Error('Not authenticated')
+    }
+    console.log('[walletAdd] User ID:', user.id)
 
     // Get current balance
     const { data: wallet, error: fetchError } = await supabase
@@ -53,19 +63,28 @@ export async function walletAdd(amount: number): Promise<number> {
       .eq('user_id', user.id)
       .single()
 
-    if (fetchError || !wallet) {
+    if (fetchError) {
+      console.error('[walletAdd] Fetch wallet error:', fetchError)
+      throw new Error('Wallet fetch error: ' + fetchError.message)
+    }
+    if (!wallet) {
+      console.error('[walletAdd] No wallet found for user')
       throw new Error('Wallet not found')
     }
+    console.log('[walletAdd] Current balance:', wallet.balance)
 
     const currentBalance = Number(wallet.balance)
     const newBalance = Number((currentBalance + amount).toFixed(2))
+    console.log('[walletAdd] New balance will be:', newBalance)
 
     // Don't allow negative balance
     if (newBalance < 0) {
+      console.error('[walletAdd] Insufficient balance')
       throw new Error('Insufficient balance')
     }
 
     // Update balance
+    console.log('[walletAdd] Updating balance...')
     const { data, error } = await supabase
       .from('wallets')
       .update({ balance: newBalance })
@@ -74,15 +93,17 @@ export async function walletAdd(amount: number): Promise<number> {
       .single()
 
     if (error) {
-      throw new Error(error.message)
+      console.error('[walletAdd] Update error:', error)
+      throw new Error('Update error: ' + error.message + ' (Check RLS UPDATE policy)')
     }
 
+    console.log('[walletAdd] Success! New balance:', data?.balance)
     return Number(data?.balance ?? newBalance)
   } catch (e) {
     if (isAbortError(e)) {
       return 0
     }
-    console.error('walletAdd error:', e)
+    console.error('[walletAdd] Error:', e)
     throw e
   }
 }
