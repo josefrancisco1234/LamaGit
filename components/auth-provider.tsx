@@ -153,35 +153,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // EFFECT: Inicializar autenticacion al montar el componente
   // ---------------------------------------------------------------------------
   React.useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // Intentar obtener la sesion existente (de localStorage)
-        const { data: { session } } = await supabase.auth.getSession()
-
-        // Si hay sesion, cargar los datos del usuario
-        if (session?.user) {
-          setUser(session.user)
-          await fetchUserData(session.user.id)
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error)
-      } finally {
-        setLoading(false) // Ya termino de cargar (con o sin usuario)
-      }
-    }
-
-    initAuth()
+    let mounted = true // Para evitar updates despues de desmontar
 
     // ---------------------------------------------------------------------------
-    // Suscribirse a cambios de autenticacion
+    // Suscribirse a cambios de autenticacion PRIMERO
     // ---------------------------------------------------------------------------
-    // Esto se dispara cuando: login, logout, token refresh, etc.
+    // onAuthStateChange dispara INITIAL_SESSION cuando la sesion esta lista
+    // Esto es mas confiable que getSession() porque espera a que localStorage este listo
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event) // INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, etc.
 
+        if (!mounted) return // Evitar updates si el componente se desmonto
+
         if (session?.user) {
           setUser(session.user)
+          // Cargar datos del usuario
           await fetchUserData(session.user.id)
         } else {
           // Limpiar todo cuando no hay sesion
@@ -189,12 +176,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null)
           setWallet(null)
         }
+
+        // IMPORTANTE: Solo marcar como "no loading" despues de procesar la sesion inicial
+        // Esto asegura que el estado de auth esta listo antes de renderizar
+        if (event === 'INITIAL_SESSION') {
+          setLoading(false)
+        }
       }
     )
 
-    // Cleanup: desuscribirse cuando el componente se desmonta
+    // Fallback: Si despues de 3 segundos aun no hay INITIAL_SESSION, desbloquear
+    // Esto evita que la app se quede cargando indefinidamente si hay un error
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        setLoading(false)
+      }
+    }, 3000)
+
+    // Cleanup: desuscribirse y cancelar timeout cuando el componente se desmonta
     return () => {
+      mounted = false
       subscription.unsubscribe()
+      clearTimeout(timeoutId)
     }
   }, [fetchUserData])
 
