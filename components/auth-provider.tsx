@@ -150,10 +150,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // ---------------------------------------------------------------------------
+  // HELPER: Intenta cargar sesion desde localStorage directamente
+  // ---------------------------------------------------------------------------
+  // A veces onAuthStateChange dispara INITIAL_SESSION antes de que localStorage
+  // este listo. Este helper lee directamente de localStorage como fallback.
+  const tryLoadFromLocalStorage = React.useCallback(async () => {
+    if (typeof window === 'undefined') return null
+
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      if (!supabaseUrl) return null
+
+      const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
+      const stored = localStorage.getItem(storageKey)
+
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed?.user?.id) {
+          console.log('[AuthProvider] Found user in localStorage:', parsed.user.id)
+          return parsed.user as User
+        }
+      }
+    } catch (e) {
+      console.log('[AuthProvider] Could not read localStorage:', e)
+    }
+    return null
+  }, [])
+
+  // ---------------------------------------------------------------------------
   // EFFECT: Inicializar autenticacion al montar el componente
   // ---------------------------------------------------------------------------
   React.useEffect(() => {
     let mounted = true // Para evitar updates despues de desmontar
+    let initialSessionProcessed = false // Track si ya procesamos INITIAL_SESSION
 
     // ---------------------------------------------------------------------------
     // Suscribirse a cambios de autenticacion PRIMERO
@@ -162,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Esto es mas confiable que getSession() porque espera a que localStorage este listo
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event) // INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, etc.
+        console.log("Auth state changed:", event, session?.user?.id || 'no user')
 
         if (!mounted) return // Evitar updates si el componente se desmonto
 
@@ -170,26 +199,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user)
           // Cargar datos del usuario
           await fetchUserData(session.user.id)
+          if (event === 'INITIAL_SESSION') {
+            initialSessionProcessed = true
+            setLoading(false)
+          }
+        } else if (event === 'INITIAL_SESSION') {
+          // ---------------------------------------------------------------------------
+          // FALLBACK: Si INITIAL_SESSION no tiene sesion, intentar localStorage
+          // ---------------------------------------------------------------------------
+          // Esto ocurre cuando onAuthStateChange dispara antes de que localStorage
+          // este completamente restaurado. Esperamos un poco y reintentamos.
+          console.log('[AuthProvider] INITIAL_SESSION without user, trying localStorage fallback...')
+
+          // Dar un pequeño delay para que localStorage termine de cargar
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+          const localUser = await tryLoadFromLocalStorage()
+          if (localUser && mounted) {
+            console.log('[AuthProvider] Loaded user from localStorage fallback')
+            setUser(localUser)
+            await fetchUserData(localUser.id)
+          } else if (mounted) {
+            // Realmente no hay sesion
+            setUser(null)
+            setProfile(null)
+            setWallet(null)
+          }
+
+          initialSessionProcessed = true
+          if (mounted) setLoading(false)
         } else {
-          // Limpiar todo cuando no hay sesion
+          // SIGNED_OUT u otro evento sin sesion
           setUser(null)
           setProfile(null)
           setWallet(null)
-        }
-
-        // IMPORTANTE: Solo marcar como "no loading" despues de procesar la sesion inicial
-        // Esto asegura que el estado de auth esta listo antes de renderizar
-        if (event === 'INITIAL_SESSION') {
-          setLoading(false)
         }
       }
     )
 
     // Fallback: Si despues de 3 segundos aun no hay INITIAL_SESSION, desbloquear
     // Esto evita que la app se quede cargando indefinidamente si hay un error
-    const timeoutId = setTimeout(() => {
-      if (mounted) {
-        setLoading(false)
+    const timeoutId = setTimeout(async () => {
+      if (mounted && !initialSessionProcessed) {
+        console.log('[AuthProvider] Timeout: trying localStorage as last resort')
+        const localUser = await tryLoadFromLocalStorage()
+        if (localUser && mounted) {
+          setUser(localUser)
+          await fetchUserData(localUser.id)
+        }
+        if (mounted) setLoading(false)
       }
     }, 3000)
 
@@ -199,7 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe()
       clearTimeout(timeoutId)
     }
-  }, [fetchUserData])
+  }, [fetchUserData, tryLoadFromLocalStorage])
 
   // ---------------------------------------------------------------------------
   // EFFECT: Manejar Alt+Tab (visibilidad de la pestana)
