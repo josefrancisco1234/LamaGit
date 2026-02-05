@@ -110,24 +110,38 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
 
     console.log('[walletAdd] User ID:', finalUserId)
 
-    // Get current balance with timeout and retry
-    console.log('[walletAdd] Fetching wallet...')
-    const { data: wallet, error: fetchError } = await withRetry(
+    // Get current balance using fetch directly (bypasses Supabase client issues)
+    console.log('[walletAdd] Fetching wallet via REST API...')
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    const fetchResponse = await withRetry(
       () => withTimeout(
-        Promise.resolve(
-          supabase
-            .from('wallets')
-            .select('balance')
-            .eq('user_id', finalUserId)
-            .single()
-        ),
-        10000, // 10 second timeout
+        fetch(
+          `${supabaseUrl}/rest/v1/wallets?user_id=eq.${finalUserId}&select=balance`,
+          {
+            headers: {
+              'apikey': supabaseKey || '',
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        ).then(async (res) => {
+          console.log('[walletAdd] Fetch response status:', res.status)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return res.json()
+        }),
+        10000,
         'Wallet fetch timeout'
       ),
-      2, // 2 retries
-      1000, // 1 second delay between retries
+      2,
+      1000,
       'fetch wallet'
-    ) as { data: WalletBalance | null; error: { message: string } | null }
+    ) as WalletBalance[]
+
+    console.log('[walletAdd] Fetch response:', fetchResponse)
+    const wallet = fetchResponse?.[0]
+    const fetchError = wallet ? null : { message: 'No wallet found' }
 
     if (fetchError) {
       console.error('[walletAdd] Fetch wallet error:', fetchError)
@@ -150,32 +164,46 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
       throw new Error('Insufficient balance')
     }
 
-    // Update balance with timeout and retry
-    console.log('[walletAdd] Updating balance...')
-    const { data, error } = await withRetry(
+    // Update balance using fetch directly
+    console.log('[walletAdd] Updating balance via REST API...')
+    const updateResponse = await withRetry(
       () => withTimeout(
-        Promise.resolve(
-          supabase
-            .from('wallets')
-            .update({ balance: newBalance } as never)
-            .eq('user_id', finalUserId)
-            .select('balance')
-            .single()
-        ),
-        10000, // 10 second timeout
+        fetch(
+          `${supabaseUrl}/rest/v1/wallets?user_id=eq.${finalUserId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': supabaseKey || '',
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation',
+            },
+            body: JSON.stringify({ balance: newBalance }),
+          }
+        ).then(async (res) => {
+          console.log('[walletAdd] Update response status:', res.status)
+          if (!res.ok) {
+            const errorText = await res.text()
+            console.error('[walletAdd] Update error response:', errorText)
+            throw new Error(`HTTP ${res.status}: ${errorText}`)
+          }
+          return res.json()
+        }),
+        10000,
         'Wallet update timeout'
       ),
-      2, // 2 retries
-      1000, // 1 second delay between retries
+      2,
+      1000,
       'update wallet'
-    ) as { data: WalletBalance | null; error: { message: string } | null }
+    ) as WalletBalance[]
 
-    if (error) {
-      console.error('[walletAdd] Update error:', error)
-      throw new Error('Update error: ' + error.message + ' (Check RLS UPDATE policy)')
+    console.log('[walletAdd] Update response:', updateResponse)
+    const updatedData = updateResponse?.[0]
+
+    if (!updatedData) {
+      console.error('[walletAdd] Update returned no data')
+      throw new Error('Update error: No data returned (Check RLS UPDATE policy)')
     }
-
-    const updatedData = data as WalletBalance | null
     console.log('[walletAdd] Success! New balance:', updatedData?.balance)
     return Number(updatedData?.balance ?? newBalance)
   } catch (e) {
