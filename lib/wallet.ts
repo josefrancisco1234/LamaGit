@@ -54,6 +54,28 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Prom
   ])
 }
 
+// Helper to retry a function
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries: number,
+  delayMs: number,
+  label: string
+): Promise<T> {
+  let lastError: Error | null = null
+  for (let i = 0; i <= retries; i++) {
+    try {
+      if (i > 0) console.log(`[walletAdd] Retry ${i}/${retries} for ${label}...`)
+      return await fn()
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e))
+      if (i < retries) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+  throw lastError
+}
+
 export async function walletAdd(amount: number, userId?: string): Promise<number> {
   try {
     console.log('[walletAdd] Starting with amount:', amount, 'userId:', userId)
@@ -88,18 +110,23 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
 
     console.log('[walletAdd] User ID:', finalUserId)
 
-    // Get current balance with timeout
+    // Get current balance with timeout and retry
     console.log('[walletAdd] Fetching wallet...')
-    const { data: wallet, error: fetchError } = await withTimeout(
-      Promise.resolve(
-        supabase
-          .from('wallets')
-          .select('balance')
-          .eq('user_id', finalUserId)
-          .single()
+    const { data: wallet, error: fetchError } = await withRetry(
+      () => withTimeout(
+        Promise.resolve(
+          supabase
+            .from('wallets')
+            .select('balance')
+            .eq('user_id', finalUserId)
+            .single()
+        ),
+        10000, // 10 second timeout
+        'Wallet fetch timeout'
       ),
-      5000,
-      'Wallet fetch timeout'
+      2, // 2 retries
+      1000, // 1 second delay between retries
+      'fetch wallet'
     ) as { data: WalletBalance | null; error: { message: string } | null }
 
     if (fetchError) {
@@ -123,19 +150,24 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
       throw new Error('Insufficient balance')
     }
 
-    // Update balance with timeout
+    // Update balance with timeout and retry
     console.log('[walletAdd] Updating balance...')
-    const { data, error } = await withTimeout(
-      Promise.resolve(
-        supabase
-          .from('wallets')
-          .update({ balance: newBalance } as never)
-          .eq('user_id', finalUserId)
-          .select('balance')
-          .single()
+    const { data, error } = await withRetry(
+      () => withTimeout(
+        Promise.resolve(
+          supabase
+            .from('wallets')
+            .update({ balance: newBalance } as never)
+            .eq('user_id', finalUserId)
+            .select('balance')
+            .single()
+        ),
+        10000, // 10 second timeout
+        'Wallet update timeout'
       ),
-      5000,
-      'Wallet update timeout'
+      2, // 2 retries
+      1000, // 1 second delay between retries
+      'update wallet'
     ) as { data: WalletBalance | null; error: { message: string } | null }
 
     if (error) {
