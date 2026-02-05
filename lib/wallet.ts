@@ -2,7 +2,6 @@ import { supabase } from './supabaseClient'
 
 /**
  * Check if an error is an AbortError (happens when tab is hidden)
- * These errors are expected and should be silently ignored
  */
 function isAbortError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
@@ -15,54 +14,22 @@ function isAbortError(error: unknown): boolean {
 }
 
 /**
- * Check if an error is an authentication error
- */
-function isAuthError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const err = error as { code?: number | string; message?: string }
-  const msg = err.message?.toLowerCase() || ''
-  return (
-    err.code === 401 ||
-    err.code === 403 ||
-    err.code === '401' ||
-    err.code === '403' ||
-    msg.includes('jwt') ||
-    msg.includes('auth') ||
-    msg.includes('token')
-  )
-}
-
-/**
  * Get the current user's wallet balance
- * @returns The balance or 0 if not found/not authenticated
  */
 export async function getBalance(): Promise<number> {
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-
-    if (!session) {
-      // Try to refresh the session
-      const { data: refreshed } = await supabase.auth.refreshSession()
-      if (!refreshed.session) return 0
-    }
-
-    const userId = session?.user?.id || (await supabase.auth.getUser()).data.user?.id
-    if (!userId) return 0
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return 0
 
     const { data, error } = await supabase
       .from('wallets')
       .select('balance')
-      .eq('user_id', userId)
-      .maybeSingle()
+      .eq('user_id', user.id)
+      .single()
 
-    if (error) {
-      console.error('Error fetching balance:', error)
-      return 0
-    }
-
-    return Number(data?.balance ?? 0)
+    if (error || !data) return 0
+    return Number(data.balance ?? 0)
   } catch (e) {
-    // Silently ignore abort errors (tab hidden)
     if (!isAbortError(e)) {
       console.error('getBalance error:', e)
     }
@@ -71,43 +38,49 @@ export async function getBalance(): Promise<number> {
 }
 
 /**
- * Add or subtract from the wallet balance atomically
- * Uses the wallet_add RPC function for race-condition-safe updates
- * @param amount - Amount to add (negative to subtract)
- * @returns The new balance
+ * Add or subtract from the wallet balance
+ * Uses direct update instead of RPC for simplicity
  */
 export async function walletAdd(amount: number): Promise<number> {
   try {
-    const { data, error } = await supabase.rpc('wallet_add', {
-      p_amount: Number(amount.toFixed(2)),
-    })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    // Get current balance
+    const { data: wallet, error: fetchError } = await supabase
+      .from('wallets')
+      .select('balance')
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !wallet) {
+      throw new Error('Wallet not found')
+    }
+
+    const currentBalance = Number(wallet.balance)
+    const newBalance = Number((currentBalance + amount).toFixed(2))
+
+    // Don't allow negative balance
+    if (newBalance < 0) {
+      throw new Error('Insufficient balance')
+    }
+
+    // Update balance
+    const { data, error } = await supabase
+      .from('wallets')
+      .update({ balance: newBalance })
+      .eq('user_id', user.id)
+      .select('balance')
+      .single()
 
     if (error) {
-      // If it's an auth error, try to refresh and retry once
-      if (isAuthError(error)) {
-        console.log('Auth error, attempting refresh...')
-        await supabase.auth.refreshSession()
-
-        const { data: retryData, error: retryError } = await supabase.rpc('wallet_add', {
-          p_amount: Number(amount.toFixed(2)),
-        })
-
-        if (retryError) {
-          console.error('Retry failed:', retryError)
-          throw new Error(retryError.message)
-        }
-
-        return Number(retryData)
-      }
-
       throw new Error(error.message)
     }
 
-    return Number(data)
+    return Number(data?.balance ?? newBalance)
   } catch (e) {
-    // Silently ignore abort errors (tab hidden)
     if (isAbortError(e)) {
-      return 0 // Return 0 silently for aborted requests
+      return 0
     }
     console.error('walletAdd error:', e)
     throw e
@@ -115,9 +88,7 @@ export async function walletAdd(amount: number): Promise<number> {
 }
 
 /**
- * Convenience function to refresh and get the latest wallet data
- * @param userId - The user ID
- * @returns The wallet record or null
+ * Get wallet data
  */
 export async function getWallet(userId: string) {
   const { data, error } = await supabase

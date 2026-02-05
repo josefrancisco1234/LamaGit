@@ -3,7 +3,6 @@
 import { Header } from "@/components/header"
 import { LeftSidebar } from "@/components/left-sidebar"
 import { BettingPanel } from "@/components/betting-panel"
-import { GlobalChatSidebar } from "@/components/global-chat-sidebar"
 
 export default function GamePage() {
   return (
@@ -33,9 +32,6 @@ export default function GamePage() {
             <BettingPanel />
           </div>
         </main>
-
-        {/* Chat Sidebar */}
-        <GlobalChatSidebar />
       </div>
     </div>
   )
