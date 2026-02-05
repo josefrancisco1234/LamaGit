@@ -55,14 +55,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) return
 
     try {
-      const { data, error } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .single()
+      // Use fetch directly to bypass Supabase client timeout issues on Vercel
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-      if (data && !error) {
-        setWallet(data)
+      // Get user's access token from localStorage
+      let accessToken = supabaseKey || ''
+      if (typeof window !== 'undefined') {
+        try {
+          const storageKey = `sb-${new URL(supabaseUrl || '').hostname.split('.')[0]}-auth-token`
+          const stored = localStorage.getItem(storageKey)
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            accessToken = parsed?.access_token || supabaseKey || ''
+          }
+        } catch (e) {
+          // Use anon key as fallback
+        }
+      }
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/wallets?user_id=eq.${currentUser.id}&select=*`,
+        {
+          headers: {
+            'apikey': supabaseKey || '',
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data?.[0]) {
+          console.log('[refreshWallet] Updated balance:', data[0].balance)
+          setWallet(data[0])
+        }
       }
     } catch (error) {
       // Check if it's an abort error (expected when switching tabs)
