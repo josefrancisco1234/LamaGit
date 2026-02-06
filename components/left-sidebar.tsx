@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { AuthModal } from "@/components/auth-modal"
@@ -14,6 +15,7 @@ import {
   HelpCircle,
   MessageCircle,
   LogIn,
+  Terminal,
 } from "lucide-react"
 
 interface NavItem {
@@ -30,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Shield, label: "Juego Responsable" },
   { icon: HelpCircle, label: "Centro de Ayuda" },
   { icon: MessageCircle, label: "Soporte en vivo" },
+  { icon: Terminal, label: "Dev", href: "/dev" },
 ]
 
 export function LeftSidebar() {
@@ -40,18 +43,41 @@ export function LeftSidebar() {
     <aside className="w-[270px] border-r border-border bg-sidebar-gradient flex flex-col py-4 hidden lg:flex">
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
-        {NAV_ITEMS.map((item) => (
-          <Button
-            key={item.label}
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
-            )}
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm">{item.label}</span>
-          </Button>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const buttonContent = (
+            <>
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm">{item.label}</span>
+            </>
+          )
+
+          if (item.href) {
+            return (
+              <Link key={item.label} href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  )}
+                >
+                  {buttonContent}
+                </Button>
+              </Link>
+            )
+          }
+
+          return (
+            <Button
+              key={item.label}
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
+              )}
+            >
+              {buttonContent}
+            </Button>
+          )
+        })}
       </nav>
 
       {/* Login button for non-authenticated users */}
