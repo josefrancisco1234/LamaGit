@@ -38,8 +38,8 @@ export default function DevPage() {
   const [newBalance, setNewBalance] = React.useState("")
   const [actionLog, setActionLog] = React.useState<string[]>([])
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // Guardar password para usarla en las llamadas API
+  const passwordRef = React.useRef("")
 
   const addLog = (message: string) => {
     setActionLog(prev => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev.slice(0, 49)])
@@ -50,54 +50,36 @@ export default function DevPage() {
     if (password === DEV_PASSWORD) {
       setAuthenticated(true)
       setPasswordError("")
+      passwordRef.current = password
       addLog("Sesion de dev iniciada")
     } else {
       setPasswordError("Contrasena incorrecta")
     }
   }
 
+  // Headers con password para autenticar
+  const getHeaders = () => ({
+    'Content-Type': 'application/json',
+    'x-admin-password': passwordRef.current,
+  })
+
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      // Fetch profiles
-      const profilesRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?select=*`,
-        {
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
-      )
-      const profiles = await profilesRes.json()
-
-      // Fetch wallets
-      const walletsRes = await fetch(
-        `${supabaseUrl}/rest/v1/wallets?select=*`,
-        {
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
-      )
-      const wallets = await walletsRes.json()
-
-      // Combine data
-      const combined: UserData[] = profiles.map((profile: any) => {
-        const wallet = wallets.find((w: any) => w.user_id === profile.id)
-        return {
-          id: profile.id,
-          email: profile.email || 'N/A',
-          username: profile.username || 'Sin nombre',
-          balance: wallet?.balance || 0,
-          created_at: profile.created_at,
-          banned: profile.banned || false,
-        }
+      const res = await fetch('/api/admin/users', {
+        headers: getHeaders(),
       })
 
-      setUsers(combined)
-      addLog(`Cargados ${combined.length} usuarios`)
+      if (!res.ok) {
+        const error = await res.json()
+        addLog(`Error: ${error.error || res.status}`)
+        setLoading(false)
+        return
+      }
+
+      const data = await res.json()
+      setUsers(data)
+      addLog(`Cargados ${data.length} usuarios`)
     } catch (error) {
       addLog(`Error cargando usuarios: ${error}`)
     }
@@ -106,25 +88,19 @@ export default function DevPage() {
 
   const setUserBalance = async (userId: string, balance: number) => {
     try {
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
-          },
-          body: JSON.stringify({ balance }),
-        }
-      )
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ balance }),
+      })
+
       if (res.ok) {
         addLog(`Balance de ${selectedUser?.username} cambiado a S/ ${balance}`)
         fetchUsers()
         setNewBalance("")
       } else {
-        addLog(`Error cambiando balance: ${res.status}`)
+        const error = await res.json()
+        addLog(`Error: ${error.error || res.status}`)
       }
     } catch (error) {
       addLog(`Error: ${error}`)
@@ -134,7 +110,7 @@ export default function DevPage() {
   const addToBalance = async (userId: string, amount: number) => {
     const user = users.find(u => u.id === userId)
     if (user) {
-      await setUserBalance(userId, user.balance + amount)
+      await setUserBalance(userId, Number(user.balance) + amount)
     }
   }
 
@@ -143,33 +119,19 @@ export default function DevPage() {
       return
     }
     try {
-      // Delete wallet first (foreign key)
-      await fetch(
-        `${supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
-      )
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      })
 
-      // Delete profile
-      await fetch(
-        `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-          },
-        }
-      )
-
-      addLog(`Usuario ${selectedUser?.username} ELIMINADO`)
-      setSelectedUser(null)
-      fetchUsers()
+      if (res.ok) {
+        addLog(`Usuario ${selectedUser?.username} ELIMINADO`)
+        setSelectedUser(null)
+        fetchUsers()
+      } else {
+        const error = await res.json()
+        addLog(`Error: ${error.error || res.status}`)
+      }
     } catch (error) {
       addLog(`Error eliminando usuario: ${error}`)
     }
@@ -177,21 +139,18 @@ export default function DevPage() {
 
   const toggleBan = async (userId: string, banned: boolean) => {
     try {
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ banned }),
-        }
-      )
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ banned }),
+      })
+
       if (res.ok) {
         addLog(`Usuario ${selectedUser?.username} ${banned ? 'BANEADO' : 'DESBANEADO'}`)
         fetchUsers()
+      } else {
+        const error = await res.json()
+        addLog(`Error: ${error.error || res.status}`)
       }
     } catch (error) {
       addLog(`Error: ${error}`)
@@ -203,21 +162,18 @@ export default function DevPage() {
       return
     }
     try {
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/wallets`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey || '',
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ balance: amount }),
-        }
-      )
+      const res = await fetch('/api/admin/global', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ action: 'reset_all_balances', amount }),
+      })
+
       if (res.ok) {
         addLog(`TODOS los balances reseteados a S/ ${amount}`)
         fetchUsers()
+      } else {
+        const error = await res.json()
+        addLog(`Error: ${error.error || res.status}`)
       }
     } catch (error) {
       addLog(`Error: ${error}`)

@@ -1,4 +1,14 @@
-"use client"
+// =============================================================================
+// RECHARGE-MODAL.TSX - Modal para Recargar la Billetera
+// =============================================================================
+// Este componente maneja el flujo de recarga de dinero:
+// 1. Usuario selecciona el monto a recargar
+// 2. Se muestra un codigo QR (simulado) para pagar
+// 3. El usuario confirma que ya pago
+// 4. Se verifica (simulado) y se acredita el dinero
+// =============================================================================
+
+"use client" // Componente de cliente (usa hooks de React)
 
 import * as React from "react"
 import Image from "next/image"
@@ -16,45 +26,84 @@ import { useToast } from "@/hooks/use-toast"
 import { formatBalance } from "@/lib/utils"
 import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react"
 
+// =============================================================================
+// TIPOS E INTERFACES
+// =============================================================================
 interface RechargeModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean                        // Si el modal esta abierto
+  onOpenChange: (open: boolean) => void // Callback para abrir/cerrar
 }
 
+// Estados posibles del flujo de recarga
+// setup    -> Usuario eligiendo monto
+// pending  -> Mostrando QR, esperando pago
+// verifying-> Verificando el pago
+// approved -> Pago aprobado, dinero acreditado
+// expired  -> El QR expiro (timeout)
 type RechargeState = "setup" | "pending" | "verifying" | "approved" | "expired"
 
-const PRESET_AMOUNTS = [5, 10, 20, 50]
-const MIN_AMOUNT = 5
-const QR_TIMEOUT = 120 // 2 minutes in seconds
+// =============================================================================
+// CONSTANTES
+// =============================================================================
+const PRESET_AMOUNTS = [5, 10, 20, 50]  // Montos predefinidos para seleccion rapida
+const MIN_AMOUNT = 5                    // Monto minimo de recarga
+const QR_TIMEOUT = 120                  // 2 minutos para pagar antes de que expire
 
+// =============================================================================
+// COMPONENTE PRINCIPAL
+// =============================================================================
 export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
-  const [amount, setAmount] = React.useState<number>(10)
-  const [state, setState] = React.useState<RechargeState>("setup")
-  const [timeLeft, setTimeLeft] = React.useState(QR_TIMEOUT)
-  const [tempCode, setTempCode] = React.useState("")
+  // ---------------------------------------------------------------------------
+  // ESTADO
+  // ---------------------------------------------------------------------------
+  const [amount, setAmount] = React.useState<number>(10)           // Monto seleccionado
+  const [state, setState] = React.useState<RechargeState>("setup") // Estado actual del flujo
+  const [timeLeft, setTimeLeft] = React.useState(QR_TIMEOUT)       // Tiempo restante para pagar
+  const [tempCode, setTempCode] = React.useState("")               // Codigo de referencia unico
 
-  const { user, refreshWallet } = useAuth()
-  const { toast } = useToast()
+  // ---------------------------------------------------------------------------
+  // CONTEXTO Y HOOKS
+  // ---------------------------------------------------------------------------
+  const { user, refreshWallet } = useAuth() // Usuario actual y funcion para refrescar balance
+  const { toast } = useToast()              // Para mostrar notificaciones
 
-  // Generate a random temporary code
+  // ---------------------------------------------------------------------------
+  // HELPERS
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Genera un codigo alfanumerico aleatorio de 8 caracteres
+   * Ejemplo: "A3B7C9D2"
+   * Se usa como referencia de pago para identificar la transaccion
+   */
   const generateCode = () => {
     return Math.random().toString(36).substring(2, 10).toUpperCase()
   }
 
-  // Reset modal state
+  /**
+   * Resetea el modal a su estado inicial
+   * Se llama al cerrar o al cancelar
+   */
   const resetModal = () => {
     setState("setup")
     setTimeLeft(QR_TIMEOUT)
     setTempCode("")
   }
 
-  // Handle close
+  /**
+   * Maneja el cierre del modal
+   * Resetea el estado si se esta cerrando
+   */
   const handleClose = (open: boolean) => {
     if (!open) resetModal()
     onOpenChange(open)
   }
 
-  // Timer for QR expiration
+  // ---------------------------------------------------------------------------
+  // TIMER PARA EXPIRACION DEL QR
+  // ---------------------------------------------------------------------------
+  // Cuando el estado es "pending", cuenta regresiva cada segundo
+  // Si llega a 0, cambia a estado "expired"
   React.useEffect(() => {
     let interval: NodeJS.Timeout
 
@@ -62,18 +111,23 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            setState("expired")
+            setState("expired") // Tiempo agotado!
             return 0
           }
           return prev - 1
         })
-      }, 1000)
+      }, 1000) // Cada segundo
     }
 
+    // Cleanup: limpiar el interval al desmontar o cambiar estado
     return () => clearInterval(interval)
   }, [state, timeLeft])
 
+  // ---------------------------------------------------------------------------
+  // GENERAR QR - Inicia el proceso de pago
+  // ---------------------------------------------------------------------------
   const handleGenerateQR = () => {
+    // Validar monto minimo
     if (amount < MIN_AMOUNT) {
       toast({
         title: "Monto invalido",
@@ -83,17 +137,25 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
       return
     }
 
+    // Generar codigo de referencia unico
     setTempCode(generateCode())
+    // Reiniciar el timer
     setTimeLeft(QR_TIMEOUT)
+    // Cambiar a estado de espera de pago
     setState("pending")
   }
 
+  // ---------------------------------------------------------------------------
+  // VERIFICAR PAGO - El usuario dice que ya pago
+  // ---------------------------------------------------------------------------
   const handleVerifyPayment = async () => {
-    setState("verifying")
+    setState("verifying") // Mostrar spinner de "verificando..."
 
-    // Simulate verification delay
+    // SIMULACION: En produccion, aqui se verificaria con la API de pagos
+    // Por ahora solo esperamos 1.8 segundos para simular la verificacion
     await new Promise((resolve) => setTimeout(resolve, 1800))
 
+    // Verificar que haya usuario logueado
     if (!user) {
       setState("setup")
       toast({
@@ -105,16 +167,24 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     }
 
     try {
+      // AGREGAR DINERO A LA BILLETERA
+      // walletAdd suma el monto al balance actual en la base de datos
       await walletAdd(amount, user.id)
+
+      // Refrescar el wallet en el contexto para actualizar la UI
       await refreshWallet()
+
+      // Cambiar a estado aprobado (mostrar checkmark verde)
       setState("approved")
 
+      // Notificar al usuario
       toast({
         title: "Recarga exitosa!",
         description: `S/ ${formatBalance(amount)} agregados a tu billetera`,
         variant: "default",
       })
     } catch (error) {
+      // Si falla, volver al estado pending para que pueda reintentar
       setState("pending")
       toast({
         title: "Error",
@@ -124,12 +194,18 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // FORMATEAR TIEMPO - Convierte segundos a formato "M:SS"
+  // ---------------------------------------------------------------------------
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
+    const mins = Math.floor(seconds / 60)           // Minutos
+    const secs = seconds % 60                       // Segundos restantes
+    return `${mins}:${secs.toString().padStart(2, "0")}` // Ejemplo: "1:45"
   }
 
+  // ===========================================================================
+  // RENDER - Interfaz de usuario
+  // ===========================================================================
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-card border-border max-w-md">
@@ -137,15 +213,17 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           <DialogTitle>Recargar Billetera</DialogTitle>
         </DialogHeader>
 
-        {/* Setup State */}
+        {/* ================================================================= */}
+        {/* ESTADO: SETUP - Seleccion de monto */}
+        {/* ================================================================= */}
         {state === "setup" && (
           <div className="space-y-4">
-            {/* Preset amounts */}
+            {/* Botones de montos predefinidos */}
             <div className="grid grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((preset) => (
                 <Button
                   key={preset}
-                  variant={amount === preset ? "default" : "outline"}
+                  variant={amount === preset ? "default" : "outline"} // Resaltar el seleccionado
                   onClick={() => setAmount(preset)}
                   className="h-12"
                 >
@@ -154,7 +232,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               ))}
             </div>
 
-            {/* Custom amount */}
+            {/* Input para monto personalizado */}
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">
                 Monto personalizado
@@ -175,6 +253,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               </p>
             </div>
 
+            {/* Boton para generar QR */}
             <Button
               onClick={handleGenerateQR}
               className="w-full"
@@ -185,9 +264,12 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           </div>
         )}
 
-        {/* Pending State - Show QR */}
+        {/* ================================================================= */}
+        {/* ESTADO: PENDING - Mostrando QR y esperando pago */}
+        {/* ================================================================= */}
         {state === "pending" && (
           <div className="space-y-4">
+            {/* Monto a pagar */}
             <div className="text-center p-4 bg-secondary rounded-lg">
               <p className="text-2xl font-bold text-primary mb-2">
                 S/ {formatBalance(amount)}
@@ -197,7 +279,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               </p>
             </div>
 
-            {/* QR Code */}
+            {/* Imagen del QR (estatica/simulada) */}
             <div className="flex justify-center p-4 bg-white rounded-lg">
               <Image
                 src="/qr.svg"
@@ -208,7 +290,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               />
             </div>
 
-            {/* Temp code */}
+            {/* Codigo de referencia */}
             <div className="text-center p-3 bg-secondary rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">
                 Codigo de referencia
@@ -216,7 +298,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               <p className="font-mono font-bold tracking-wider">{tempCode}</p>
             </div>
 
-            {/* Timer */}
+            {/* Timer de expiracion */}
             <div className="flex items-center justify-center gap-2 text-warning">
               <Clock className="w-4 h-4" />
               <span className="font-medium">
@@ -224,10 +306,12 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               </span>
             </div>
 
+            {/* Boton "Ya Pague" */}
             <Button onClick={handleVerifyPayment} className="w-full">
               Ya Pague
             </Button>
 
+            {/* Boton Cancelar */}
             <Button
               variant="ghost"
               onClick={() => setState("setup")}
@@ -238,9 +322,12 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           </div>
         )}
 
-        {/* Verifying State */}
+        {/* ================================================================= */}
+        {/* ESTADO: VERIFYING - Verificando el pago */}
+        {/* ================================================================= */}
         {state === "verifying" && (
           <div className="py-8 text-center space-y-4">
+            {/* Spinner animado */}
             <Loader2 className="w-12 h-12 animate-spin mx-auto text-accent" />
             <p className="text-lg font-medium">Verificando pago...</p>
             <p className="text-sm text-muted-foreground">
@@ -249,29 +336,37 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           </div>
         )}
 
-        {/* Approved State */}
+        {/* ================================================================= */}
+        {/* ESTADO: APPROVED - Pago aprobado exitosamente */}
+        {/* ================================================================= */}
         {state === "approved" && (
           <div className="py-8 text-center space-y-4">
+            {/* Icono de exito */}
             <CheckCircle className="w-16 h-16 mx-auto text-success" />
             <p className="text-lg font-medium text-success">Recarga Exitosa!</p>
             <p className="text-2xl font-bold">S/ {formatBalance(amount)}</p>
             <p className="text-sm text-muted-foreground">
               El saldo ha sido agregado a tu billetera
             </p>
+            {/* Boton para cerrar */}
             <Button onClick={() => handleClose(false)} className="w-full mt-4">
               Continuar
             </Button>
           </div>
         )}
 
-        {/* Expired State */}
+        {/* ================================================================= */}
+        {/* ESTADO: EXPIRED - El QR expiro */}
+        {/* ================================================================= */}
         {state === "expired" && (
           <div className="py-8 text-center space-y-4">
+            {/* Icono de error/expiracion */}
             <XCircle className="w-16 h-16 mx-auto text-destructive" />
             <p className="text-lg font-medium text-destructive">QR Expirado</p>
             <p className="text-sm text-muted-foreground">
               El codigo QR ha expirado. Por favor genera uno nuevo.
             </p>
+            {/* Boton para reintentar */}
             <Button onClick={() => setState("setup")} className="w-full mt-4">
               Generar Nuevo QR
             </Button>
