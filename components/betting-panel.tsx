@@ -212,7 +212,7 @@ export function BettingPanel() {
         toast({
           title: won ? "Ganaste!" : "Perdiste",
           description: won
-            ? `Resultado: ${finalNumber.toFixed(2)} - Ganancia: S/ ${formatBalance(payout)} (${multiplier.toFixed(2)}x)`
+            ? `Resultado: ${finalNumber.toFixed(2)} - Ganancia: S/ ${formatBalance(payout)} (${multiplier.toFixed(4)}x)`
             : `Resultado: ${finalNumber.toFixed(2)} - Perdiste S/ ${formatBalance(currentBet)}`,
           variant: won ? "default" : "destructive",
         })

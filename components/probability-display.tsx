@@ -73,7 +73,7 @@ export function ProbabilityDisplay({
             <span className="text-xs">Multiplicador</span>
           </div>
           <span className="text-2xl font-bold text-accent">
-            {multiplier.toFixed(2)}x
+            {multiplier.toFixed(4)}x
           </span>
         </div>
 
