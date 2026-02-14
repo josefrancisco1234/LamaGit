@@ -149,13 +149,8 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
   // VERIFICAR PAGO - El usuario dice que ya pago
   // ---------------------------------------------------------------------------
   const handleVerifyPayment = async () => {
-    setState("verifying") // Mostrar spinner de "verificando..."
+    setState("verifying")
 
-    // SIMULACION: En produccion, aqui se verificaria con la API de pagos
-    // Por ahora solo esperamos 1.8 segundos para simular la verificacion
-    await new Promise((resolve) => setTimeout(resolve, 1800))
-
-    // Verificar que haya usuario logueado
     if (!user) {
       setState("setup")
       toast({
@@ -167,28 +162,35 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     }
 
     try {
-      // AGREGAR DINERO A LA BILLETERA
-      // walletAdd suma el monto al balance actual en la base de datos
-      await walletAdd(amount, user.id)
+      // Crear solicitud de recarga PENDIENTE (el admin la aprueba desde /dev)
+      const res = await fetch('/api/recharges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          username: user.user_metadata?.username || user.email || 'Sin nombre',
+          amount,
+          code: tempCode,
+        }),
+      })
 
-      // Refrescar el wallet en el contexto para actualizar la UI
-      await refreshWallet()
+      if (!res.ok) {
+        throw new Error('Failed to create recharge request')
+      }
 
-      // Cambiar a estado aprobado (mostrar checkmark verde)
+      // Cambiar a estado aprobado (en realidad es "enviado, esperando aprobacion")
       setState("approved")
 
-      // Notificar al usuario
       toast({
-        title: "Recarga exitosa!",
-        description: `S/ ${formatBalance(amount)} agregados a tu billetera`,
+        title: "Solicitud enviada!",
+        description: `Tu recarga de S/ ${formatBalance(amount)} esta pendiente de aprobacion`,
         variant: "default",
       })
     } catch (error) {
-      // Si falla, volver al estado pending para que pueda reintentar
       setState("pending")
       toast({
         title: "Error",
-        description: "No se pudo procesar la recarga",
+        description: "No se pudo enviar la solicitud",
         variant: "destructive",
       })
     }
@@ -341,16 +343,22 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
         {/* ================================================================= */}
         {state === "approved" && (
           <div className="py-8 text-center space-y-4">
-            {/* Icono de exito */}
-            <CheckCircle className="w-16 h-16 mx-auto text-success" />
-            <p className="text-lg font-medium text-success">Recarga Exitosa!</p>
+            {/* Icono de pendiente */}
+            <Clock className="w-16 h-16 mx-auto text-warning" />
+            <p className="text-lg font-medium text-warning">Solicitud Enviada!</p>
             <p className="text-2xl font-bold">S/ {formatBalance(amount)}</p>
             <p className="text-sm text-muted-foreground">
-              El saldo ha sido agregado a tu billetera
+              Tu recarga esta pendiente de aprobacion.
+              <br />
+              El saldo se agregara cuando el administrador la apruebe.
             </p>
+            <div className="bg-secondary/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Codigo de referencia</p>
+              <p className="font-mono font-bold">{tempCode}</p>
+            </div>
             {/* Boton para cerrar */}
             <Button onClick={() => handleClose(false)} className="w-full mt-4">
-              Continuar
+              Entendido
             </Button>
           </div>
         )}

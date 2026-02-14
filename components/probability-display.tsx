@@ -51,6 +51,9 @@ export function ProbabilityDisplay({
   // Calculate the width percentage for the win zone
   const winZoneWidth = (threshold / 98.02) * 100
 
+  // Get last result for the label
+  const lastResult = history.length > 0 ? history[0].result : null
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -99,29 +102,36 @@ export function ProbabilityDisplay({
           </span>
         </div>
 
-        {/* Visual bar showing win/lose zones */}
-        <div className="relative h-3 rounded-full overflow-hidden bg-destructive/30">
-          <div
-            className="absolute left-0 top-0 h-full bg-success/50 transition-all duration-200"
-            style={{ width: `${winZoneWidth}%` }}
-          />
+        {/* Markers 0 - 25 - 50 - 75 - 100 */}
+        <div className="flex justify-between text-xs font-semibold text-muted-foreground px-1">
+          <span className="text-success">0</span>
+          <span>25</span>
+          <span>50</span>
+          <span>75</span>
+          <span className="text-destructive">100</span>
         </div>
 
-        {/* Slider */}
-        <Slider
-          value={[sliderPosition]}
-          onValueChange={handleSliderChange}
-          min={0}
-          max={THRESHOLD_VALUES.length - 1}
-          step={1}
-          disabled={disabled}
-          className="w-full"
-        />
+        {/* Slider with result label */}
+        <div className="relative mt-8">
+          {/* Result label positioned where the dice landed */}
+          {lastResult !== null && (
+            <div
+              className="absolute -top-7 transform -translate-x-1/2 bg-[#fbbf24] text-[#0f172a] text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap z-10 shadow-md"
+              style={{ left: `${lastResult}%`, transition: 'left 0.6s cubic-bezier(0.22, 1, 0.36, 1)' }}
+            >
+              {lastResult.toFixed(2)}
+            </div>
+          )}
 
-        {/* Labels */}
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span className="text-success">0.01 (99x)</span>
-          <span className="text-destructive">98.02 (1.01x)</span>
+          <Slider
+            value={[sliderPosition]}
+            onValueChange={handleSliderChange}
+            min={0}
+            max={THRESHOLD_VALUES.length - 1}
+            step={1}
+            disabled={disabled}
+            className="w-full"
+          />
         </div>
 
         {/* Explanation */}

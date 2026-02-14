@@ -11,8 +11,10 @@ import {
   Search,
   Ban,
   CheckCircle,
+  XCircle,
   Eye,
-  Settings
+  Settings,
+  Clock,
 } from "lucide-react"
 
 const DEV_PASSWORD = "troxomoroxo"
@@ -26,6 +28,17 @@ interface UserData {
   banned?: boolean
 }
 
+interface RechargeRequest {
+  id: string
+  user_id: string
+  username: string
+  amount: number
+  code: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  resolved_at?: string
+}
+
 export default function DevPage() {
   const [authenticated, setAuthenticated] = React.useState(false)
   const [password, setPassword] = React.useState("")
@@ -37,6 +50,8 @@ export default function DevPage() {
   const [selectedUser, setSelectedUser] = React.useState<UserData | null>(null)
   const [newBalance, setNewBalance] = React.useState("")
   const [actionLog, setActionLog] = React.useState<string[]>([])
+  const [recharges, setRecharges] = React.useState<RechargeRequest[]>([])
+  const [loadingRecharges, setLoadingRecharges] = React.useState(false)
 
   // Guardar password para usarla en las llamadas API
   const passwordRef = React.useRef("")
@@ -180,6 +195,48 @@ export default function DevPage() {
     }
   }
 
+  // Recargas
+  const fetchRecharges = async () => {
+    setLoadingRecharges(true)
+    try {
+      const res = await fetch('/api/admin/recharges', {
+        headers: getHeaders(),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRecharges(data)
+        const pending = data.filter((r: RechargeRequest) => r.status === 'pending').length
+        addLog(`Cargadas ${data.length} recargas (${pending} pendientes)`)
+      }
+    } catch (error) {
+      addLog(`Error cargando recargas: ${error}`)
+    }
+    setLoadingRecharges(false)
+  }
+
+  const handleRecharge = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      const res = await fetch('/api/admin/recharges', {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ id, action }),
+      })
+      if (res.ok) {
+        const recharge = recharges.find(r => r.id === id)
+        addLog(`Recarga de ${recharge?.username} (S/ ${recharge?.amount}) ${action === 'approve' ? 'APROBADA' : 'RECHAZADA'}`)
+        fetchRecharges()
+        fetchUsers()
+      } else {
+        const error = await res.json()
+        addLog(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      addLog(`Error: ${error}`)
+    }
+  }
+
+  const pendingRecharges = recharges.filter(r => r.status === 'pending')
+
   const filteredUsers = users.filter(u =>
     u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -231,6 +288,60 @@ export default function DevPage() {
           <Button variant="outline" onClick={() => setAuthenticated(false)}>
             Cerrar Sesion
           </Button>
+        </div>
+
+        {/* Recargas Pendientes */}
+        <div className="bg-card border border-border rounded-xl p-4 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-warning" />
+              Recargas Pendientes ({pendingRecharges.length})
+            </h2>
+            <Button onClick={fetchRecharges} disabled={loadingRecharges} size="sm">
+              <RefreshCw className={`w-4 h-4 mr-2 ${loadingRecharges ? 'animate-spin' : ''}`} />
+              {loadingRecharges ? 'Cargando...' : 'Cargar'}
+            </Button>
+          </div>
+
+          {pendingRecharges.length > 0 ? (
+            <div className="space-y-3">
+              {pendingRecharges.map((req) => (
+                <div key={req.id} className="flex items-center justify-between bg-secondary/30 rounded-lg p-3 border border-warning/30">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold">{req.username}</span>
+                      <span className="text-2xl font-bold text-primary">S/ {Number(req.amount).toFixed(2)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Codigo: {req.code} | {new Date(req.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      size="sm"
+                      className="bg-success hover:bg-success/80 text-white"
+                      onClick={() => handleRecharge(req.id, 'approve')}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Aprobar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleRecharge(req.id, 'reject')}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Rechazar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-4">
+              {recharges.length === 0 ? 'Haz clic en "Cargar" para ver las recargas' : 'No hay recargas pendientes'}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
