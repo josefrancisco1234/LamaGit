@@ -1,4 +1,53 @@
-<svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="17" cy="17" r="15" fill="#1e3a5f" stroke="#fbbf24" stroke-width="2"/>
-  <text x="17" y="22" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="bold" font-family="system-ui">L</text>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer casino chip notches -->
+  <circle cx="100" cy="100" r="95" fill="#fbbf24"/>
+  <circle cx="100" cy="100" r="85" fill="#0f172a"/>
+
+  <!-- Chip notches (top, bottom, left, right, and diagonals) -->
+  <rect x="88" y="0" width="24" height="20" rx="4" fill="#0f172a"/>
+  <rect x="88" y="180" width="24" height="20" rx="4" fill="#0f172a"/>
+  <rect x="0" y="88" width="20" height="24" rx="4" fill="#0f172a"/>
+  <rect x="180" y="88" width="20" height="24" rx="4" fill="#0f172a"/>
+
+  <!-- Diagonal notches -->
+  <rect x="22" y="22" width="24" height="16" rx="4" fill="#0f172a" transform="rotate(45 34 30)"/>
+  <rect x="154" y="22" width="24" height="16" rx="4" fill="#0f172a" transform="rotate(-45 166 30)"/>
+  <rect x="22" y="162" width="24" height="16" rx="4" fill="#0f172a" transform="rotate(-45 34 170)"/>
+  <rect x="154" y="162" width="24" height="16" rx="4" fill="#0f172a" transform="rotate(45 166 170)"/>
+
+  <!-- Inner ring -->
+  <circle cx="100" cy="100" r="75" fill="none" stroke="#fbbf24" stroke-width="4"/>
+  <circle cx="100" cy="100" r="65" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8 6"/>
+
+  <!-- Llama head silhouette -->
+  <path d="
+    M 72 140
+    C 72 140 68 120 70 105
+    C 72 90 75 85 78 78
+    C 80 73 78 55 76 45
+    C 74 38 75 32 80 30
+    C 84 28 87 32 88 38
+    C 89 42 88 50 88 55
+    C 88 60 90 65 92 68
+    C 94 70 98 68 100 65
+    C 102 62 104 58 106 55
+    C 108 50 108 42 109 38
+    C 110 32 113 28 117 30
+    C 122 32 123 38 121 45
+    C 119 52 118 58 118 63
+    C 118 68 120 73 122 78
+    C 126 86 130 95 130 105
+    C 130 115 128 125 128 140
+    Z
+  " fill="#fbbf24"/>
+
+  <!-- Llama ear details -->
+  <path d="M 80 38 C 82 35 84 34 86 36 C 87 38 86 42 85 45" fill="none" stroke="#0f172a" stroke-width="1.5"/>
+  <path d="M 117 38 C 115 35 113 34 111 36 C 110 38 111 42 112 45" fill="none" stroke="#0f172a" stroke-width="1.5"/>
+
+  <!-- Llama eye -->
+  <circle cx="95" cy="72" r="3" fill="#0f172a"/>
+
+  <!-- Llama nose/mouth -->
+  <path d="M 88 85 C 90 88 94 90 98 88" fill="none" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
 </svg>
