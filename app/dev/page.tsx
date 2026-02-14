@@ -60,6 +60,22 @@ export default function DevPage() {
     setActionLog(prev => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev.slice(0, 49)])
   }
 
+  // Auto-refresh cada 5 segundos cuando esta autenticado
+  React.useEffect(() => {
+    if (!authenticated) return
+
+    // Cargar al entrar
+    fetchUsers()
+    fetchRecharges()
+
+    const interval = setInterval(() => {
+      fetchUserssilent()
+      fetchRechargesSilent()
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [authenticated])
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
     if (password === DEV_PASSWORD) {
@@ -193,6 +209,27 @@ export default function DevPage() {
     } catch (error) {
       addLog(`Error: ${error}`)
     }
+  }
+
+  // Silent versions (no loading spinners, no logs) for auto-refresh
+  const fetchUserssilent = async () => {
+    try {
+      const res = await fetch('/api/admin/users', { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data)
+      }
+    } catch {}
+  }
+
+  const fetchRechargesSilent = async () => {
+    try {
+      const res = await fetch('/api/admin/recharges', { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        setRecharges(data)
+      }
+    } catch {}
   }
 
   // Recargas
