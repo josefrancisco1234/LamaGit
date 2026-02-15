@@ -30,16 +30,14 @@ export function Header() {
     <header className="h-[72px] border-b border-border bg-header-gradient flex items-center justify-between px-4 lg:px-6">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="relative w-[38px] h-[38px] overflow-hidden">
-          <Image
-            src="/logo.png"
-            alt="LamaBet"
-            width={38}
-            height={38}
-            className="object-contain"
-            priority
-          />
-        </div>
+        <Image
+          src="/logo.png"
+          alt="LamaBet"
+          width={44}
+          height={44}
+          className="object-contain"
+          priority
+        />
         <span className="text-xl font-bold text-primary hidden sm:block">
           LamaBet
         </span>
