@@ -3,6 +3,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { LoadingWrapper } from "@/components/loading-wrapper"
 
 export const metadata: Metadata = {
   title: "LamaBet - Juego de Dados Online",
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body className="bg-background text-foreground antialiased">
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <LoadingWrapper>
+              {children}
+            </LoadingWrapper>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
