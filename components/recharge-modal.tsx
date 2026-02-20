@@ -1,14 +1,4 @@
-// =============================================================================
-// RECHARGE-MODAL.TSX - Modal para Recargar la Billetera
-// =============================================================================
-// Este componente maneja el flujo de recarga de dinero:
-// 1. Usuario selecciona el monto a recargar
-// 2. Se muestra un codigo QR (simulado) para pagar
-// 3. El usuario confirma que ya pago
-// 4. Se verifica (simulado) y se acredita el dinero
-// =============================================================================
-
-"use client" // Componente de cliente (usa hooks de React)
+"use client"
 
 import * as React from "react"
 import {
@@ -18,355 +8,428 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
-import { walletAdd } from "@/lib/wallet"
 import { useToast } from "@/hooks/use-toast"
 import { formatBalance } from "@/lib/utils"
-import { Loader2, Clock } from "lucide-react"
+import { Loader2, Clock, Sparkles } from "lucide-react"
 
-// =============================================================================
-// TIPOS E INTERFACES
-// =============================================================================
 interface RechargeModalProps {
-  open: boolean                        // Si el modal esta abierto
-  onOpenChange: (open: boolean) => void // Callback para abrir/cerrar
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-// Estados posibles del flujo de recarga
-// setup    -> Usuario eligiendo monto
-// pending  -> Mostrando QR, esperando pago
-// verifying-> Verificando el pago
-// approved -> Pago aprobado, dinero acreditado
-// expired  -> El QR expiro (timeout)
-type RechargeState = "setup" | "pending" | "verifying" | "approved" | "expired"
+type RechargeState = "setup" | "pending" | "verifying" | "approved"
 
-// =============================================================================
-// CONSTANTES
-// =============================================================================
-const PRESET_AMOUNTS = [5, 10, 20, 50]  // Montos predefinidos para seleccion rapida
-const MIN_AMOUNT = 5                    // Monto minimo de recarga
-const QR_TIMEOUT = 300                  // 5 minutos para pagar antes de que expire
+const PRESET_AMOUNTS = [5, 10, 20, 50]
+const MIN_AMOUNT = 5
+const QR_TIMEOUT = 300
 
-// =============================================================================
-// COMPONENTE PRINCIPAL
-// =============================================================================
 export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
-  // ---------------------------------------------------------------------------
-  // ESTADO
-  // ---------------------------------------------------------------------------
-  const [amount, setAmount] = React.useState<number>(10)           // Monto seleccionado
-  const [state, setState] = React.useState<RechargeState>("setup") // Estado actual del flujo
-  const [timeLeft, setTimeLeft] = React.useState(QR_TIMEOUT)       // Tiempo restante para pagar
-  const [tempCode, setTempCode] = React.useState("")               // Codigo de referencia unico
+  const [amount, setAmount] = React.useState<number>(10)
+  const [state, setState] = React.useState<RechargeState>("setup")
+  const [timeLeft, setTimeLeft] = React.useState(QR_TIMEOUT)
+  const [tempCode, setTempCode] = React.useState("")
 
-  // ---------------------------------------------------------------------------
-  // CONTEXTO Y HOOKS
-  // ---------------------------------------------------------------------------
-  const { user, refreshWallet } = useAuth() // Usuario actual y funcion para refrescar balance
-  const { toast } = useToast()              // Para mostrar notificaciones
+  const { user } = useAuth()
+  const { toast } = useToast()
 
-  // ---------------------------------------------------------------------------
-  // HELPERS
-  // ---------------------------------------------------------------------------
+  const generateCode = () =>
+    Math.random().toString(36).substring(2, 10).toUpperCase()
 
-  /**
-   * Genera un codigo alfanumerico aleatorio de 8 caracteres
-   * Ejemplo: "A3B7C9D2"
-   * Se usa como referencia de pago para identificar la transaccion
-   */
-  const generateCode = () => {
-    return Math.random().toString(36).substring(2, 10).toUpperCase()
-  }
-
-  /**
-   * Resetea el modal a su estado inicial
-   * Se llama al cerrar o al cancelar
-   */
   const resetModal = () => {
     setState("setup")
     setTimeLeft(QR_TIMEOUT)
     setTempCode("")
   }
 
-  /**
-   * Maneja el cierre del modal
-   * Resetea el estado si se esta cerrando
-   */
   const handleClose = (open: boolean) => {
     if (!open) resetModal()
     onOpenChange(open)
   }
 
-  // ---------------------------------------------------------------------------
-  // TIMER PARA EXPIRACION DEL QR
-  // ---------------------------------------------------------------------------
-  // Cuando el estado es "pending", cuenta regresiva cada segundo
-  // Si llega a 0, cambia a estado "expired"
+  // Timer
   React.useEffect(() => {
     let interval: NodeJS.Timeout
-
     if (state === "pending" && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => Math.max(0, prev - 1))
       }, 1000)
     }
-
-    // Cuando llega a 0 estando en pending: cerrar el modal automaticamente
     if (state === "pending" && timeLeft === 0) {
       setState("setup")
       setTimeLeft(QR_TIMEOUT)
       setTempCode("")
       onOpenChange(false)
     }
-
     return () => clearInterval(interval)
   }, [state, timeLeft, onOpenChange])
 
-  // ---------------------------------------------------------------------------
-  // GENERAR QR - Inicia el proceso de pago
-  // ---------------------------------------------------------------------------
   const handleGenerateQR = () => {
-    // Validar monto minimo
     if (amount < MIN_AMOUNT) {
-      toast({
-        title: "Monto invalido",
-        description: `El monto minimo es S/ ${MIN_AMOUNT}`,
-        variant: "destructive",
-      })
+      toast({ title: "Monto invalido", description: `Minimo S/ ${MIN_AMOUNT}`, variant: "destructive" })
       return
     }
-
-    // Generar codigo de referencia unico
     setTempCode(generateCode())
-    // Reiniciar el timer
     setTimeLeft(QR_TIMEOUT)
-    // Cambiar a estado de espera de pago
     setState("pending")
   }
 
-  // ---------------------------------------------------------------------------
-  // VERIFICAR PAGO - El usuario dice que ya pago
-  // ---------------------------------------------------------------------------
   const handleVerifyPayment = async () => {
     setState("verifying")
-
     if (!user) {
       setState("setup")
-      toast({
-        title: "Error",
-        description: "Debes iniciar sesion",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "Debes iniciar sesion", variant: "destructive" })
       return
     }
-
     try {
-      // Crear solicitud de recarga PENDIENTE (el admin la aprueba desde /dev)
-      const res = await fetch('/api/recharges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/recharges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user.id,
-          username: user.user_metadata?.username || user.email || 'Sin nombre',
+          username: user.user_metadata?.username || user.email || "Sin nombre",
           amount,
           code: tempCode,
         }),
       })
-
-      if (!res.ok) {
-        throw new Error('Failed to create recharge request')
-      }
-
-      // Cambiar a estado aprobado (en realidad es "enviado, esperando aprobacion")
+      if (!res.ok) throw new Error("Failed")
       setState("approved")
-
       toast({
         title: "Solicitud enviada!",
         description: `Tu recarga de S/ ${formatBalance(amount)} esta pendiente de aprobacion`,
-        variant: "default",
       })
-    } catch (error) {
+    } catch {
       setState("pending")
-      toast({
-        title: "Error",
-        description: "No se pudo enviar la solicitud",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "No se pudo enviar la solicitud", variant: "destructive" })
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // FORMATEAR TIEMPO - Convierte segundos a formato "M:SS"
-  // ---------------------------------------------------------------------------
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)           // Minutos
-    const secs = seconds % 60                       // Segundos restantes
-    return `${mins}:${secs.toString().padStart(2, "0")}` // Ejemplo: "1:45"
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, "0")}`
   }
 
-  // ===========================================================================
-  // RENDER - Interfaz de usuario
-  // ===========================================================================
+  const isUrgent = timeLeft <= 60
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-card border-border max-w-md">
-        <DialogHeader>
-          <DialogTitle>Recargar Billetera</DialogTitle>
-        </DialogHeader>
+    <>
+      {/* Estilos del modal premium */}
+      <style>{`
+        .rm-content {
+          background: linear-gradient(160deg, #0d1b3e 0%, #111827 50%, #0a1020 100%);
+          background-size: 300% 300%;
+          animation: rm-shift 10s ease infinite;
+          border: 1px solid rgba(240, 182, 22, 0.25) !important;
+          border-radius: 20px !important;
+          box-shadow: 0 0 60px rgba(240, 182, 22, 0.08), 0 25px 60px rgba(0,0,0,0.6) !important;
+          overflow: hidden;
+          position: relative;
+        }
 
-        {/* ================================================================= */}
-        {/* ESTADO: SETUP - Seleccion de monto */}
-        {/* ================================================================= */}
-        {state === "setup" && (
-          <div className="space-y-4">
-            {/* Botones de montos predefinidos */}
-            <div className="grid grid-cols-4 gap-2">
-              {PRESET_AMOUNTS.map((preset) => (
-                <Button
-                  key={preset}
-                  variant={amount === preset ? "default" : "outline"} // Resaltar el seleccionado
-                  onClick={() => setAmount(preset)}
-                  className="h-12"
+        /* Brillo sutil en esquina superior */
+        .rm-content::before {
+          content: '';
+          position: absolute;
+          top: -60px;
+          left: -60px;
+          width: 200px;
+          height: 200px;
+          background: radial-gradient(circle, rgba(240,182,22,0.12) 0%, transparent 70%);
+          pointer-events: none;
+          animation: rm-glow-move 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes rm-shift {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        @keyframes rm-glow-move {
+          from { transform: translate(0, 0); }
+          to   { transform: translate(80px, 80px); }
+        }
+
+        /* Botones de monto preestablecido */
+        .rm-preset-btn {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(240,182,22,0.3);
+          color: #e2e8f0;
+          border-radius: 10px;
+          padding: 10px;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          width: 100%;
+        }
+
+        .rm-preset-btn:hover {
+          background: rgba(240,182,22,0.15);
+          border-color: #f0b616;
+          color: #f0b616;
+          box-shadow: 0 0 16px rgba(240,182,22,0.3), inset 0 0 12px rgba(240,182,22,0.08);
+          transform: translateY(-1px);
+        }
+
+        .rm-preset-btn.active {
+          background: rgba(240,182,22,0.2);
+          border-color: #f0b616;
+          color: #f0b616;
+          box-shadow: 0 0 20px rgba(240,182,22,0.35), inset 0 0 14px rgba(240,182,22,0.1);
+        }
+
+        /* Boton primario dorado */
+        .rm-btn-gold {
+          width: 100%;
+          padding: 14px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 1rem;
+          border: none;
+          cursor: pointer;
+          background: linear-gradient(135deg, #f0b616 0%, #d4920a 50%, #f0b616 100%);
+          background-size: 200% 200%;
+          color: #0a0f1a;
+          letter-spacing: 0.03em;
+          transition: all 0.25s ease;
+          box-shadow: 0 4px 20px rgba(240,182,22,0.3);
+        }
+
+        .rm-btn-gold:hover {
+          background-position: right center;
+          box-shadow: 0 0 30px rgba(240,182,22,0.55), 0 4px 20px rgba(240,182,22,0.4);
+          transform: translateY(-2px);
+        }
+
+        .rm-btn-gold:active {
+          transform: translateY(0px);
+        }
+
+        .rm-btn-gold:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        /* Boton secundario / cancelar */
+        .rm-btn-ghost {
+          width: 100%;
+          padding: 12px;
+          border-radius: 12px;
+          font-weight: 500;
+          font-size: 0.9rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: transparent;
+          color: #94a3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .rm-btn-ghost:hover {
+          border-color: rgba(240,182,22,0.4);
+          color: #f0b616;
+          background: rgba(240,182,22,0.06);
+          box-shadow: 0 0 12px rgba(240,182,22,0.15);
+        }
+
+        /* Input personalizado */
+        .rm-input {
+          background: rgba(255,255,255,0.05) !important;
+          border: 1px solid rgba(240,182,22,0.25) !important;
+          border-radius: 10px !important;
+          color: #e2e8f0 !important;
+          transition: border-color 0.2s, box-shadow 0.2s !important;
+        }
+
+        .rm-input:focus {
+          border-color: #f0b616 !important;
+          box-shadow: 0 0 0 2px rgba(240,182,22,0.2) !important;
+          outline: none !important;
+        }
+
+        /* Timer urgente */
+        @keyframes rm-urgent-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .rm-timer-urgent {
+          animation: rm-urgent-pulse 0.8s ease-in-out infinite;
+        }
+      `}</style>
+
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="rm-content max-w-md p-0 gap-0">
+          <div className="p-6 space-y-5 relative z-10">
+
+            {/* HEADER */}
+            <DialogHeader className="pb-1">
+              <DialogTitle
+                className="text-center text-xl font-bold"
+                style={{ color: "#f0b616", letterSpacing: "0.04em" }}
+              >
+                Recargar Billetera
+              </DialogTitle>
+            </DialogHeader>
+
+            {/* ======================== SETUP ======================== */}
+            {state === "setup" && (
+              <div className="space-y-5">
+                {/* Montos preestablecidos */}
+                <div>
+                  <p className="text-xs text-center mb-3" style={{ color: "#94a3b8", letterSpacing: "0.1em" }}>
+                    SELECCIONA UN MONTO
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PRESET_AMOUNTS.map((preset) => (
+                      <button
+                        key={preset}
+                        className={`rm-preset-btn ${amount === preset ? "active" : ""}`}
+                        onClick={() => setAmount(preset)}
+                      >
+                        S/ {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Monto personalizado */}
+                <div className="space-y-2">
+                  <label className="text-xs" style={{ color: "#94a3b8", letterSpacing: "0.08em" }}>
+                    MONTO PERSONALIZADO
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: "#f0b616", fontWeight: 700 }}>S/</span>
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                      min={MIN_AMOUNT}
+                      step={1}
+                      className="rm-input"
+                    />
+                  </div>
+                  <p className="text-xs" style={{ color: "#64748b" }}>
+                    Monto minimo: S/ {MIN_AMOUNT}
+                  </p>
+                </div>
+
+                {/* Boton generar QR */}
+                <button
+                  className="rm-btn-gold"
+                  onClick={handleGenerateQR}
+                  disabled={amount < MIN_AMOUNT}
                 >
-                  S/ {preset}
-                </Button>
-              ))}
-            </div>
-
-            {/* Input para monto personalizado */}
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">
-                Monto personalizado
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">S/</span>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  min={MIN_AMOUNT}
-                  step={1}
-                  className="bg-secondary border-border"
-                />
+                  <Sparkles className="inline w-4 h-4 mr-2" />
+                  Generar QR de Pago
+                </button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Monto minimo: S/ {MIN_AMOUNT}
-              </p>
-            </div>
+            )}
 
-            {/* Boton para generar QR */}
-            <Button
-              onClick={handleGenerateQR}
-              className="w-full"
-              disabled={amount < MIN_AMOUNT}
-            >
-              Generar QR de Pago
-            </Button>
+            {/* ======================== PENDING ======================== */}
+            {state === "pending" && (
+              <div className="space-y-4">
+                {/* Monto */}
+                <div className="text-center py-3 rounded-xl" style={{ background: "rgba(240,182,22,0.08)", border: "1px solid rgba(240,182,22,0.2)" }}>
+                  <p className="text-3xl font-black" style={{ color: "#f0b616" }}>
+                    S/ {formatBalance(amount)}
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>
+                    Escanea el codigo QR para pagar
+                  </p>
+                </div>
+
+                {/* QR */}
+                <div className="flex justify-center p-4 rounded-xl" style={{ background: "#ffffff" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/yape.png"
+                    alt="QR Yape"
+                    style={{ width: "190px", height: "190px", objectFit: "contain", borderRadius: "8px", display: "block" }}
+                  />
+                </div>
+
+                {/* Codigo */}
+                <div className="text-center py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <p className="text-xs mb-1" style={{ color: "#64748b", letterSpacing: "0.1em" }}>CODIGO DE REFERENCIA</p>
+                  <p className="font-mono font-bold text-lg tracking-widest" style={{ color: "#e2e8f0" }}>
+                    {tempCode}
+                  </p>
+                </div>
+
+                {/* Timer */}
+                <div
+                  className={`flex items-center justify-center gap-2 font-semibold text-sm ${isUrgent ? "rm-timer-urgent" : ""}`}
+                  style={{ color: isUrgent ? "#ef4444" : "#f59e0b" }}
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>Expira en {formatTime(timeLeft)}</span>
+                </div>
+
+                {/* Botones */}
+                <button className="rm-btn-gold" onClick={handleVerifyPayment}>
+                  Ya Pague
+                </button>
+                <button className="rm-btn-ghost" onClick={() => setState("setup")}>
+                  Cancelar
+                </button>
+              </div>
+            )}
+
+            {/* ======================== VERIFYING ======================== */}
+            {state === "verifying" && (
+              <div className="py-10 text-center space-y-4">
+                <div style={{
+                  width: "64px", height: "64px", margin: "0 auto",
+                  borderRadius: "50%",
+                  background: "rgba(240,182,22,0.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 0 30px rgba(240,182,22,0.2)"
+                }}>
+                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#f0b616" }} />
+                </div>
+                <p className="text-lg font-semibold" style={{ color: "#e2e8f0" }}>Verificando pago...</p>
+                <p className="text-sm" style={{ color: "#64748b" }}>Esto puede tomar unos segundos</p>
+              </div>
+            )}
+
+            {/* ======================== APPROVED ======================== */}
+            {state === "approved" && (
+              <div className="py-8 text-center space-y-4">
+                <div style={{
+                  width: "72px", height: "72px", margin: "0 auto",
+                  borderRadius: "50%",
+                  background: "rgba(240,182,22,0.12)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 0 40px rgba(240,182,22,0.25)"
+                }}>
+                  <Clock className="w-9 h-9" style={{ color: "#f0b616" }} />
+                </div>
+                <p className="text-lg font-bold" style={{ color: "#f0b616" }}>Solicitud Enviada!</p>
+                <p className="text-3xl font-black" style={{ color: "#e2e8f0" }}>
+                  S/ {formatBalance(amount)}
+                </p>
+                <p className="text-sm" style={{ color: "#94a3b8" }}>
+                  Tu recarga esta pendiente de aprobacion.
+                  <br />
+                  El saldo se agregara cuando el administrador la apruebe.
+                </p>
+                <div className="rounded-xl py-3 px-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <p className="text-xs mb-1" style={{ color: "#64748b", letterSpacing: "0.1em" }}>CODIGO DE REFERENCIA</p>
+                  <p className="font-mono font-bold tracking-widest" style={{ color: "#e2e8f0" }}>{tempCode}</p>
+                </div>
+                <button className="rm-btn-gold" onClick={() => handleClose(false)}>
+                  Entendido
+                </button>
+              </div>
+            )}
+
           </div>
-        )}
-
-        {/* ================================================================= */}
-        {/* ESTADO: PENDING - Mostrando QR y esperando pago */}
-        {/* ================================================================= */}
-        {state === "pending" && (
-          <div className="space-y-4">
-            {/* Monto a pagar */}
-            <div className="text-center p-4 bg-secondary rounded-lg">
-              <p className="text-2xl font-bold text-primary mb-2">
-                S/ {formatBalance(amount)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Escanea el codigo QR para pagar
-              </p>
-            </div>
-
-            {/* Imagen del QR - Yape */}
-            <div className="flex justify-center p-4 bg-white rounded-lg">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/yape.png"
-                alt="QR Yape"
-                style={{ width: "180px", height: "180px", objectFit: "contain", borderRadius: "8px" }}
-              />
-            </div>
-
-            {/* Codigo de referencia */}
-            <div className="text-center p-3 bg-secondary rounded-lg">
-              <p className="text-xs text-muted-foreground mb-1">
-                Codigo de referencia
-              </p>
-              <p className="font-mono font-bold tracking-wider">{tempCode}</p>
-            </div>
-
-            {/* Timer de expiracion - rojo y pulsando cuando quedan <= 60s */}
-            <div
-              className={`flex items-center justify-center gap-2 font-medium ${
-                timeLeft <= 60
-                  ? "text-destructive animate-pulse"
-                  : "text-warning"
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Expira en {formatTime(timeLeft)}</span>
-            </div>
-
-            {/* Boton "Ya Pague" */}
-            <Button onClick={handleVerifyPayment} className="w-full">
-              Ya Pague
-            </Button>
-
-            {/* Boton Cancelar */}
-            <Button
-              variant="ghost"
-              onClick={() => setState("setup")}
-              className="w-full text-muted-foreground"
-            >
-              Cancelar
-            </Button>
-          </div>
-        )}
-
-        {/* ================================================================= */}
-        {/* ESTADO: VERIFYING - Verificando el pago */}
-        {/* ================================================================= */}
-        {state === "verifying" && (
-          <div className="py-8 text-center space-y-4">
-            {/* Spinner animado */}
-            <Loader2 className="w-12 h-12 animate-spin mx-auto text-accent" />
-            <p className="text-lg font-medium">Verificando pago...</p>
-            <p className="text-sm text-muted-foreground">
-              Esto puede tomar unos segundos
-            </p>
-          </div>
-        )}
-
-        {/* ================================================================= */}
-        {/* ESTADO: APPROVED - Pago aprobado exitosamente */}
-        {/* ================================================================= */}
-        {state === "approved" && (
-          <div className="py-8 text-center space-y-4">
-            {/* Icono de pendiente */}
-            <Clock className="w-16 h-16 mx-auto text-warning" />
-            <p className="text-lg font-medium text-warning">Solicitud Enviada!</p>
-            <p className="text-2xl font-bold">S/ {formatBalance(amount)}</p>
-            <p className="text-sm text-muted-foreground">
-              Tu recarga esta pendiente de aprobacion.
-              <br />
-              El saldo se agregara cuando el administrador la apruebe.
-            </p>
-            <div className="bg-secondary/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground">Codigo de referencia</p>
-              <p className="font-mono font-bold">{tempCode}</p>
-            </div>
-            {/* Boton para cerrar */}
-            <Button onClick={() => handleClose(false)} className="w-full mt-4">
-              Entendido
-            </Button>
-          </div>
-        )}
-
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
