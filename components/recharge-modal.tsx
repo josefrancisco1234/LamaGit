@@ -11,7 +11,6 @@
 "use client" // Componente de cliente (usa hooks de React)
 
 import * as React from "react"
-import Image from "next/image"
 import {
   Dialog,
   DialogContent,
@@ -284,12 +283,11 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
 
             {/* Imagen del QR - Yape */}
             <div className="flex justify-center p-4 bg-white rounded-lg">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/yape.png"
                 alt="QR Yape"
-                width={180}
-                height={180}
-                className="rounded"
+                style={{ width: "180px", height: "180px", objectFit: "contain", borderRadius: "8px" }}
               />
             </div>
 
