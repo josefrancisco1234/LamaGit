@@ -450,7 +450,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
                 </div>
 
                 {/* QR */}
-                <div className="flex justify-center p-4 rounded-xl" style={{ background: "#ffffff" }}>
+                <div className="flex justify-center p-4 rounded-xl" style={{ background: "transparent" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/yape.png"
