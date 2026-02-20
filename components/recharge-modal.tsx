@@ -24,7 +24,7 @@ import { useAuth } from "@/components/auth-provider"
 import { walletAdd } from "@/lib/wallet"
 import { useToast } from "@/hooks/use-toast"
 import { formatBalance } from "@/lib/utils"
-import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Loader2, Clock } from "lucide-react"
 
 // =============================================================================
 // TIPOS E INTERFACES
@@ -47,7 +47,7 @@ type RechargeState = "setup" | "pending" | "verifying" | "approved" | "expired"
 // =============================================================================
 const PRESET_AMOUNTS = [5, 10, 20, 50]  // Montos predefinidos para seleccion rapida
 const MIN_AMOUNT = 5                    // Monto minimo de recarga
-const QR_TIMEOUT = 120                  // 2 minutos para pagar antes de que expire
+const QR_TIMEOUT = 300                  // 5 minutos para pagar antes de que expire
 
 // =============================================================================
 // COMPONENTE PRINCIPAL
@@ -109,19 +109,20 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
 
     if (state === "pending" && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            setState("expired") // Tiempo agotado!
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000) // Cada segundo
+        setTimeLeft((prev) => Math.max(0, prev - 1))
+      }, 1000)
     }
 
-    // Cleanup: limpiar el interval al desmontar o cambiar estado
+    // Cuando llega a 0 estando en pending: cerrar el modal automaticamente
+    if (state === "pending" && timeLeft === 0) {
+      setState("setup")
+      setTimeLeft(QR_TIMEOUT)
+      setTempCode("")
+      onOpenChange(false)
+    }
+
     return () => clearInterval(interval)
-  }, [state, timeLeft])
+  }, [state, timeLeft, onOpenChange])
 
   // ---------------------------------------------------------------------------
   // GENERAR QR - Inicia el proceso de pago
@@ -281,11 +282,11 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               </p>
             </div>
 
-            {/* Imagen del QR (estatica/simulada) */}
+            {/* Imagen del QR - Yape */}
             <div className="flex justify-center p-4 bg-white rounded-lg">
               <Image
-                src="/qr.svg"
-                alt="QR de Pago"
+                src="/yape.png"
+                alt="QR Yape"
                 width={180}
                 height={180}
                 className="rounded"
@@ -300,12 +301,16 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               <p className="font-mono font-bold tracking-wider">{tempCode}</p>
             </div>
 
-            {/* Timer de expiracion */}
-            <div className="flex items-center justify-center gap-2 text-warning">
+            {/* Timer de expiracion - rojo y pulsando cuando quedan <= 60s */}
+            <div
+              className={`flex items-center justify-center gap-2 font-medium ${
+                timeLeft <= 60
+                  ? "text-destructive animate-pulse"
+                  : "text-warning"
+              }`}
+            >
               <Clock className="w-4 h-4" />
-              <span className="font-medium">
-                Expira en {formatTime(timeLeft)}
-              </span>
+              <span>Expira en {formatTime(timeLeft)}</span>
             </div>
 
             {/* Boton "Ya Pague" */}
@@ -363,23 +368,6 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           </div>
         )}
 
-        {/* ================================================================= */}
-        {/* ESTADO: EXPIRED - El QR expiro */}
-        {/* ================================================================= */}
-        {state === "expired" && (
-          <div className="py-8 text-center space-y-4">
-            {/* Icono de error/expiracion */}
-            <XCircle className="w-16 h-16 mx-auto text-destructive" />
-            <p className="text-lg font-medium text-destructive">QR Expirado</p>
-            <p className="text-sm text-muted-foreground">
-              El codigo QR ha expirado. Por favor genera uno nuevo.
-            </p>
-            {/* Boton para reintentar */}
-            <Button onClick={() => setState("setup")} className="w-full mt-4">
-              Generar Nuevo QR
-            </Button>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   )
