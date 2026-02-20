@@ -124,7 +124,6 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           border-radius: 20px !important;
           box-shadow: 0 0 60px rgba(240, 182, 22, 0.08), 0 25px 60px rgba(0,0,0,0.6) !important;
           overflow: hidden;
-          position: relative;
         }
 
         /* Brillo sutil en esquina superior */

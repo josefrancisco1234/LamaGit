@@ -28,20 +28,20 @@ export function LoadingScreen({
 }: LamaBetLoadingProps) {
   const [progress, setProgress] = React.useState(0)
 
+  // Incrementar progreso cada 300ms
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          onComplete?.()
-          return 100
-        }
-        return Math.min(prev + Math.floor(Math.random() * 15) + 5, 100)
-      })
+      setProgress((prev) => Math.min(prev + Math.floor(Math.random() * 15) + 5, 100))
     }, 300)
-
     return () => clearInterval(interval)
-  }, [onComplete])
+  }, [])
+
+  // Llamar onComplete cuando llega a 100 (fuera del setState updater para evitar warning de React)
+  React.useEffect(() => {
+    if (progress >= 100) {
+      onComplete?.()
+    }
+  }, [progress, onComplete])
 
   return (
     <>
