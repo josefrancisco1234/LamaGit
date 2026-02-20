@@ -257,6 +257,17 @@ export function BettingPanel() {
       return
     }
 
+    // Verificar que no supere el maximo permitido
+    if (!demo && currentBet > MAX_BET) {
+      setUiError("Apuesta maxima: S/ 100")
+      toast({
+        title: "Apuesta maxima excedida",
+        description: "La apuesta maxima es S/ 100",
+        variant: "destructive",
+      })
+      return
+    }
+
     // Verificar balance suficiente
     if (!demo && walletRef.current && currentBet > walletRef.current.balance) {
       setUiError("Saldo insuficiente")
@@ -346,19 +357,21 @@ export function BettingPanel() {
   // ===========================================================================
 
   // Multiplicar/dividir apuesta (para botones 1/2 y 2x)
+  const MAX_BET = 100
+
   const adjustBet = (multiplier: number) => {
     setBet((prev) => {
       const newValue = prev * multiplier
-      const maxBet = walletRef.current?.balance ?? 1000
-      // Limitar entre 0.001 (demo) y el balance del usuario
+      const maxBet = Math.min(walletRef.current?.balance ?? MAX_BET, MAX_BET)
+      // Limitar entre 0.001 (demo) y el maximo permitido (100 soles)
       return Math.min(Math.max(0.001, Number(newValue.toFixed(3))), maxBet)
     })
   }
 
-  // Apostar todo el balance
+  // Apostar todo el balance (maximo 100 soles)
   const setMaxBet = () => {
     if (walletRef.current) {
-      setBet(walletRef.current.balance)
+      setBet(Math.min(walletRef.current.balance, MAX_BET))
     }
   }
 
@@ -464,10 +477,11 @@ export function BettingPanel() {
                   type="number"
                   value={bet}
                   onChange={(e) =>
-                    setBet(Math.max(0, Number(e.target.value)))
+                    setBet(Math.min(Math.max(0, Number(e.target.value)), MAX_BET))
                   }
                   step={0.01}
                   min={0}
+                  max={MAX_BET}
                   disabled={rolling}
                   className="pl-9 bg-secondary border-border text-center font-mono"
                 />
