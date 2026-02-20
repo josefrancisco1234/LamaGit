@@ -18,7 +18,7 @@ interface RechargeModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-type RechargeState = "setup" | "pending" | "verifying" | "approved"
+type RechargeState = "setup" | "generating" | "pending" | "verifying" | "approved"
 
 const PRESET_AMOUNTS = [5, 10, 20, 50]
 const MIN_AMOUNT = 5
@@ -64,6 +64,13 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     return () => clearInterval(interval)
   }, [state, timeLeft, onOpenChange])
 
+  // Timer de 5s para simular generacion del QR
+  React.useEffect(() => {
+    if (state !== "generating") return
+    const timer = setTimeout(() => setState("pending"), 5000)
+    return () => clearTimeout(timer)
+  }, [state])
+
   const handleGenerateQR = () => {
     if (amount < MIN_AMOUNT) {
       toast({ title: "Monto invalido", description: `Minimo S/ ${MIN_AMOUNT}`, variant: "destructive" })
@@ -71,7 +78,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     }
     setTempCode(generateCode())
     setTimeLeft(QR_TIMEOUT)
-    setState("pending")
+    setState("generating") // primero animacion, luego QR
   }
 
   const handleVerifyPayment = async () => {
@@ -258,6 +265,64 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
         .rm-timer-urgent {
           animation: rm-urgent-pulse 0.8s ease-in-out infinite;
         }
+
+        /* ── Dado 3D (animacion de carga del QR) ── */
+        .rm-dice-scene {
+          perspective: 600px;
+          width: 120px;
+          height: 120px;
+        }
+
+        .rm-dice {
+          width: 120px;
+          height: 120px;
+          position: relative;
+          transform-style: preserve-3d;
+          animation: rm-dice-roll 4s linear infinite;
+        }
+
+        @keyframes rm-dice-roll {
+          0%   { transform: rotateX(0deg)   rotateY(0deg); }
+          25%  { transform: rotateX(90deg)  rotateY(180deg); }
+          50%  { transform: rotateX(180deg) rotateY(360deg); }
+          75%  { transform: rotateX(270deg) rotateY(540deg); }
+          100% { transform: rotateX(360deg) rotateY(720deg); }
+        }
+
+        .rm-dice-face {
+          position: absolute;
+          width: 120px;
+          height: 120px;
+          border: 2px solid #f0b616;
+          border-radius: 14px;
+          overflow: hidden;
+          backface-visibility: hidden;
+          background: #1a2040;
+          box-shadow: inset 0 0 16px rgba(240, 182, 22, 0.1);
+        }
+
+        .rm-dice-face img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        @keyframes rm-dots {
+          0%, 20%  { content: '.'; }
+          40%      { content: '..'; }
+          60%, 100%{ content: '...'; }
+        }
+
+        .rm-generating-dots::after {
+          content: '';
+          animation: rm-dots-anim 1.2s steps(1) infinite;
+        }
+
+        @keyframes rm-dots-anim {
+          0%  { content: '.'; }
+          33% { content: '..'; }
+          66% { content: '...'; }
+        }
       `}</style>
 
       <Dialog open={open} onOpenChange={handleClose}>
@@ -325,6 +390,49 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
                   <Sparkles className="inline w-4 h-4 mr-2" />
                   Generar QR de Pago
                 </button>
+              </div>
+            )}
+
+            {/* ======================== GENERATING ======================== */}
+            {state === "generating" && (
+              <div className="py-8 text-center space-y-6">
+                {/* Dado girando con glow */}
+                <div className="flex justify-center">
+                  <div style={{ position: "relative" }}>
+                    {/* Aura */}
+                    <div style={{
+                      position: "absolute", inset: "-20px", borderRadius: "50%",
+                      background: "rgba(240,182,22,0.18)", filter: "blur(30px)",
+                      animation: "rm-shift 3s ease infinite",
+                    }} />
+                    <div className="rm-dice-scene" style={{ margin: "0 auto" }}>
+                      <div className="rm-dice">
+                        {[
+                          `rotateY(0deg) translateZ(60px)`,
+                          `rotateY(180deg) translateZ(60px)`,
+                          `rotateY(90deg) translateZ(60px)`,
+                          `rotateY(-90deg) translateZ(60px)`,
+                          `rotateX(90deg) translateZ(60px)`,
+                          `rotateX(-90deg) translateZ(60px)`,
+                        ].map((transform, i) => (
+                          <div key={i} className="rm-dice-face" style={{ transform }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/logo.png" alt="LamaBet" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-lg font-bold rm-generating-dots" style={{ color: "#f0b616" }}>
+                    Generando QR
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: "#64748b" }}>
+                    Preparando tu codigo de pago...
+                  </p>
+                </div>
               </div>
             )}
 
