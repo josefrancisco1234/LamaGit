@@ -396,33 +396,50 @@ export function BettingPanel() {
           {/* ================================================================= */}
           {/* DISPLAY DEL DADO - Muestra el numero actual/resultado */}
           {/* ================================================================= */}
-          <div className="bg-card-gradient rounded-xl p-8 border border-border text-center">
+          <div className="bg-card-gradient rounded-xl p-6 border border-border text-center">
+            {/* ── Dado 3D ── */}
+            <div className="bp-dice-scene mb-5">
+              <div className={`bp-dice ${
+                rolling ? "rolling" : lastResult ? (lastResult.won ? "won" : "lost") : "idle"
+              }`}>
+                {[
+                  "rotateY(0deg) translateZ(50px)",
+                  "rotateY(180deg) translateZ(50px)",
+                  "rotateY(90deg) translateZ(50px)",
+                  "rotateY(-90deg) translateZ(50px)",
+                  "rotateX(90deg) translateZ(50px)",
+                  "rotateX(-90deg) translateZ(50px)",
+                ].map((transform, i) => (
+                  <div key={i} className="bp-dice-face" style={{ transform }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/logo.png" alt="" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Número resultado */}
             <div
               className={`text-6xl font-bold transition-all duration-300 ${
-                rolling ? "dice-spinning rolling-glow text-accent" : "" // Animacion de giro
-              } ${
                 lastResult
                   ? lastResult.won
-                    ? "text-success win-animation"      // Verde si gano
-                    : "text-destructive lose-animation" // Rojo si perdio
+                    ? "text-success win-animation"
+                    : "text-destructive lose-animation"
                   : "text-foreground"
               }`}
             >
-              {/* Mostrar el numero apropiado segun el estado */}
               {rolling
-                ? displayNumber?.toFixed(2) ?? "??.??"  // Durante animacion
+                ? displayNumber?.toFixed(2) ?? "??.??"
                 : lastResult
-                ? lastResult.number.toFixed(2)          // Resultado final
-                : displayNumber?.toFixed(2) ?? "??.??"} {/* Estado inicial */}
+                ? lastResult.number.toFixed(2)
+                : displayNumber?.toFixed(2) ?? "??.??"}
             </div>
 
-            {/* Mensaje de GANASTE/PERDISTE */}
+            {/* Mensaje GANASTE/PERDISTE */}
             {lastResult && !rolling && (
-              <p
-                className={`mt-2 text-lg font-semibold ${
-                  lastResult.won ? "text-success" : "text-destructive"
-                }`}
-              >
+              <p className={`mt-2 text-lg font-semibold ${
+                lastResult.won ? "text-success" : "text-destructive"
+              }`}>
                 {lastResult.won ? "GANASTE!" : "PERDISTE"}
               </p>
             )}
