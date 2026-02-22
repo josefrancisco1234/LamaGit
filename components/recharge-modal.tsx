@@ -18,7 +18,7 @@ interface RechargeModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-type RechargeState = "setup" | "generating" | "pending" | "verifying" | "approved"
+type RechargeState = "setup" | "payment-method" | "generating" | "pending" | "verifying" | "approved"
 
 const PRESET_AMOUNTS = [5, 10, 20, 50]
 const MIN_AMOUNT = 5
@@ -78,7 +78,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     }
     setTempCode(generateCode())
     setTimeLeft(QR_TIMEOUT)
-    setState("generating") // primero animacion, luego QR
+    setState("payment-method")
   }
 
   const handleVerifyPayment = async () => {
@@ -266,6 +266,41 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
           animation: rm-urgent-pulse 0.8s ease-in-out infinite;
         }
 
+        /* ── Metodo de pago ── */
+        .rm-method-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 18px 20px;
+          border-radius: 14px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(240,182,22,0.25);
+          cursor: pointer;
+          transition: all 0.25s ease;
+          width: 100%;
+          text-align: left;
+        }
+
+        .rm-method-card:hover {
+          background: rgba(240,182,22,0.1);
+          border-color: #f0b616;
+          box-shadow: 0 0 24px rgba(240,182,22,0.25), inset 0 0 16px rgba(240,182,22,0.06);
+          transform: translateY(-2px);
+        }
+
+        .rm-method-card .rm-method-badge {
+          font-size: 0.65rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          padding: 3px 8px;
+          border-radius: 20px;
+          background: rgba(34,197,94,0.15);
+          color: #22c55e;
+          border: 1px solid rgba(34,197,94,0.3);
+          margin-left: auto;
+          white-space: nowrap;
+        }
+
         /* ── Dado 3D (animacion de carga del QR) ── */
         .rm-dice-scene {
           perspective: 600px;
@@ -389,6 +424,48 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
                 >
                   <Sparkles className="inline w-4 h-4 mr-2" />
                   Generar QR de Pago
+                </button>
+              </div>
+            )}
+
+            {/* ======================== PAYMENT METHOD ======================== */}
+            {state === "payment-method" && (
+              <div className="space-y-5">
+                {/* Monto seleccionado */}
+                <div className="text-center py-3 rounded-xl" style={{ background: "rgba(240,182,22,0.08)", border: "1px solid rgba(240,182,22,0.2)" }}>
+                  <p className="text-3xl font-black" style={{ color: "#f0b616" }}>S/ {formatBalance(amount)}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-center mb-4" style={{ color: "#94a3b8", letterSpacing: "0.1em" }}>
+                    OPCIONES DE PAGO DISPONIBLES
+                  </p>
+
+                  {/* Yape */}
+                  <button
+                    className="rm-method-card"
+                    onClick={() => setState("generating")}
+                  >
+                    {/* Logo Yape circular */}
+                    <div style={{
+                      width: "48px", height: "48px", borderRadius: "50%",
+                      background: "linear-gradient(135deg, #6c1cd1 0%, #8b2fc9 100%)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 0 16px rgba(108,28,209,0.4)"
+                    }}>
+                      <span style={{ color: "#fff", fontWeight: 900, fontSize: "1.1rem", letterSpacing: "-0.02em" }}>Y</span>
+                    </div>
+                    <div>
+                      <p style={{ color: "#e2e8f0", fontWeight: 700, fontSize: "1rem" }}>Yape</p>
+                      <p style={{ color: "#64748b", fontSize: "0.78rem", marginTop: "2px" }}>Pago instantaneo con QR</p>
+                    </div>
+                    <span className="rm-method-badge">Disponible</span>
+                  </button>
+                </div>
+
+                <button className="rm-btn-ghost" onClick={() => setState("setup")}>
+                  Volver
                 </button>
               </div>
             )}
