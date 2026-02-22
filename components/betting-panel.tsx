@@ -396,53 +396,78 @@ export function BettingPanel() {
           {/* ================================================================= */}
           {/* DISPLAY DEL DADO - Muestra el numero actual/resultado */}
           {/* ================================================================= */}
-          <div className="bg-card-gradient rounded-xl p-6 border border-border text-center">
-            {/* ── Dado 3D ── */}
-            <div className="bp-dice-scene mb-5">
-              <div className={`bp-dice ${
-                rolling ? "rolling" : lastResult ? (lastResult.won ? "won" : "lost") : "idle"
-              }`}>
-                {[
-                  "rotateY(0deg) translateZ(50px)",
-                  "rotateY(180deg) translateZ(50px)",
-                  "rotateY(90deg) translateZ(50px)",
-                  "rotateY(-90deg) translateZ(50px)",
-                  "rotateX(90deg) translateZ(50px)",
-                  "rotateX(-90deg) translateZ(50px)",
-                ].map((transform, i) => (
-                  <div key={i} className="bp-dice-face" style={{ transform }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" alt="" />
-                  </div>
-                ))}
+          <div className="bg-card-gradient rounded-xl p-6 border border-border">
+            <div className="flex items-center justify-between gap-3">
+
+              {/* ── Dado izquierdo ── */}
+              <div className="bp-dice-scene-sm">
+                <div className={`bp-dice-sm ${
+                  rolling ? "rolling" : lastResult ? (lastResult.won ? "won" : "lost") : "idle"
+                }`}>
+                  {[
+                    "rotateY(0deg) translateZ(38px)",
+                    "rotateY(180deg) translateZ(38px)",
+                    "rotateY(90deg) translateZ(38px)",
+                    "rotateY(-90deg) translateZ(38px)",
+                    "rotateX(90deg) translateZ(38px)",
+                    "rotateX(-90deg) translateZ(38px)",
+                  ].map((transform, i) => (
+                    <div key={i} className="bp-dice-face-sm" style={{ transform }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/logo.png" alt="" />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Número resultado */}
-            <div
-              className={`text-6xl font-bold transition-all duration-300 ${
-                lastResult
-                  ? lastResult.won
-                    ? "text-success win-animation"
-                    : "text-destructive lose-animation"
-                  : "text-foreground"
-              }`}
-            >
-              {rolling
-                ? displayNumber?.toFixed(2) ?? "??.??"
-                : lastResult
-                ? lastResult.number.toFixed(2)
-                : displayNumber?.toFixed(2) ?? "??.??"}
-            </div>
+              {/* ── Centro: número + resultado ── */}
+              <div className="flex-1 text-center">
+                <div
+                  className={`text-6xl font-bold transition-all duration-300 ${
+                    lastResult
+                      ? lastResult.won
+                        ? "text-success win-animation"
+                        : "text-destructive lose-animation"
+                      : "text-foreground"
+                  }`}
+                >
+                  {rolling
+                    ? displayNumber?.toFixed(2) ?? "??.??"
+                    : lastResult
+                    ? lastResult.number.toFixed(2)
+                    : displayNumber?.toFixed(2) ?? "??.??"}
+                </div>
+                {lastResult && !rolling && (
+                  <p className={`mt-1 text-lg font-semibold ${
+                    lastResult.won ? "text-success" : "text-destructive"
+                  }`}>
+                    {lastResult.won ? "GANASTE!" : "PERDISTE"}
+                  </p>
+                )}
+              </div>
 
-            {/* Mensaje GANASTE/PERDISTE */}
-            {lastResult && !rolling && (
-              <p className={`mt-2 text-lg font-semibold ${
-                lastResult.won ? "text-success" : "text-destructive"
-              }`}>
-                {lastResult.won ? "GANASTE!" : "PERDISTE"}
-              </p>
-            )}
+              {/* ── Dado derecho (rotación inversa) ── */}
+              <div className="bp-dice-scene-sm">
+                <div className={`bp-dice-sm ${
+                  rolling ? "rolling-rev" : lastResult ? (lastResult.won ? "won" : "lost") : "idle-rev"
+                }`}>
+                  {[
+                    "rotateY(0deg) translateZ(38px)",
+                    "rotateY(180deg) translateZ(38px)",
+                    "rotateY(90deg) translateZ(38px)",
+                    "rotateY(-90deg) translateZ(38px)",
+                    "rotateX(90deg) translateZ(38px)",
+                    "rotateX(-90deg) translateZ(38px)",
+                  ].map((transform, i) => (
+                    <div key={i} className="bp-dice-face-sm" style={{ transform }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/logo.png" alt="" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
           </div>
 
           {/* ================================================================= */}

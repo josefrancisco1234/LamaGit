@@ -163,6 +163,16 @@ body {
   100% { transform: rotateX(360deg) rotateY(720deg); }
 }
 
+@keyframes bp-roll-rev {
+  0%   { transform: rotateX(0deg)    rotateY(0deg); }
+  100% { transform: rotateX(-360deg) rotateY(-720deg); }
+}
+
+@keyframes bp-idle-rev {
+  0%   { transform: rotateX(-15deg) rotateY(0deg); }
+  100% { transform: rotateX(-15deg) rotateY(-360deg); }
+}
+
 @keyframes bp-idle {
   0%   { transform: rotateX(15deg) rotateY(0deg); }
   100% { transform: rotateX(15deg) rotateY(360deg); }
@@ -244,6 +254,72 @@ body {
   border-color: #ef4444;
   background: rgba(45, 15, 15, 0.92);
   box-shadow: inset 0 0 18px rgba(239, 68, 68, 0.3);
+}
+
+/* ── Dado lateral (sm, 76px) ── */
+.bp-dice-scene-sm {
+  perspective: 300px;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+}
+
+.bp-dice-sm {
+  width: 76px;
+  height: 76px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.bp-dice-sm.idle     { animation: bp-idle     4s linear    infinite; }
+.bp-dice-sm.idle-rev { animation: bp-idle-rev 4s linear    infinite; }
+.bp-dice-sm.rolling  { animation: bp-roll     0.45s linear infinite; }
+.bp-dice-sm.rolling-rev { animation: bp-roll-rev 0.45s linear infinite; }
+.bp-dice-sm.won {
+  transform: rotateX(25deg) rotateY(45deg);
+  animation: bp-win-glow 0.9s ease-in-out infinite;
+}
+.bp-dice-sm.lost { animation: bp-lose-shake 0.5s ease-in-out forwards; }
+
+.bp-dice-face-sm {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  border: 2px solid;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.4s, background 0.4s, box-shadow 0.4s;
+}
+
+.bp-dice-face-sm img {
+  width: 65%;
+  height: 65%;
+  object-fit: contain;
+}
+
+.bp-dice-sm.idle .bp-dice-face-sm,
+.bp-dice-sm.idle-rev .bp-dice-face-sm,
+.bp-dice-sm.rolling .bp-dice-face-sm,
+.bp-dice-sm.rolling-rev .bp-dice-face-sm {
+  border-color: #f0b616;
+  background: rgba(26, 32, 64, 0.92);
+  box-shadow: inset 0 0 12px rgba(240, 182, 22, 0.18);
+}
+
+.bp-dice-sm.won .bp-dice-face-sm {
+  border-color: #22c55e;
+  background: rgba(15, 40, 25, 0.92);
+  box-shadow: inset 0 0 16px rgba(34, 197, 94, 0.3);
+}
+
+.bp-dice-sm.lost .bp-dice-face-sm {
+  border-color: #ef4444;
+  background: rgba(45, 15, 15, 0.92);
+  box-shadow: inset 0 0 16px rgba(239, 68, 68, 0.3);
 }
 
 /* Gradient backgrounds */
