@@ -123,10 +123,17 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     <>
       {/* Estilos del modal premium */}
       <style>{`
-        /* Boton X por encima del contenido */
+        /* Boton X visible y por encima del contenido */
         .rm-content > button {
-          position: relative;
-          z-index: 20;
+          z-index: 30 !important;
+          color: rgba(255,255,255,0.8) !important;
+          opacity: 1 !important;
+        }
+
+        .rm-content > button:hover {
+          color: #f0b616 !important;
+          background: rgba(240,182,22,0.12) !important;
+          border-radius: 50%;
         }
 
         .rm-content {
