@@ -123,6 +123,12 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     <>
       {/* Estilos del modal premium */}
       <style>{`
+        /* Boton X por encima del contenido */
+        .rm-content > button {
+          position: relative;
+          z-index: 20;
+        }
+
         .rm-content {
           background: linear-gradient(160deg, #0d1b3e 0%, #111827 50%, #0a1020 100%);
           background-size: 300% 300%;
