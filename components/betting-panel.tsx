@@ -581,7 +581,7 @@ export function BettingPanel() {
 
             {/* Botones rapidos de monto */}
             <div className="grid grid-cols-4 gap-2">
-              {[0.001, 0.01, 1, 10].map((amount) => (
+              {[0.001, 1, 5, 10].map((amount) => (
                 <Button
                   key={amount}
                   variant={bet === amount ? "default" : "outline"}
