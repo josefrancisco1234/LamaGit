@@ -110,26 +110,34 @@ export function ProbabilityDisplay({
             { label: "50",  pos: 50 / 99, color: "#ffffff", anchor: "center" },
             { label: "75",  pos: 75 / 99, color: "#ffffff", anchor: "center" },
             { label: "100", pos: 1,       color: "#ef4444", anchor: "right"  },
-          ].map(({ label, pos, color, anchor }) => (
-            <span
-              key={label}
-              style={{
-                position: "absolute",
-                left: `${pos * 100}%`,
-                transform:
-                  anchor === "center" ? "translateX(-50%)"
-                  : anchor === "right"  ? "translateX(-100%)"
-                  : "none",
-                color,
-                fontWeight: 800,
-                fontSize: "0.85rem",
-                lineHeight: 1,
-                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-              }}
-            >
-              {label}
-            </span>
-          ))}
+          ].map(({ label, pos, color, anchor }) => {
+            // Radix aplica un offset al thumb: (pos*100 - 50) * thumbHalf/50
+            // donde thumbHalf=10 (thumb es 20px). Lo compensamos en el label.
+            const radixPx = anchor === "center" ? (pos * 100 - 50) * 0.2 : 0
+            const leftVal = radixPx !== 0
+              ? `calc(${pos * 100}% + ${radixPx}px)`
+              : `${pos * 100}%`
+            return (
+              <span
+                key={label}
+                style={{
+                  position: "absolute",
+                  left: leftVal,
+                  transform:
+                    anchor === "center" ? "translateX(-50%)"
+                    : anchor === "right"  ? "translateX(-100%)"
+                    : "none",
+                  color,
+                  fontWeight: 800,
+                  fontSize: "0.85rem",
+                  lineHeight: 1,
+                  textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+                }}
+              >
+                {label}
+              </span>
+            )
+          })}
         </div>
 
         {/* Slider with result label */}
