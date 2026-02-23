@@ -32,8 +32,12 @@ export async function GET(request: NextRequest) {
       }
     )
 
+    // Si la tabla no existe o hay error, devolver datos vacíos en lugar de 500
     if (!res.ok) {
-      return NextResponse.json({ error: 'Failed to fetch history' }, { status: 500 })
+      return NextResponse.json({
+        games: [],
+        stats: { totalGames: 0, wins: 0, losses: 0, winRate: '0.0', totalBet: 0, totalPayout: 0, net: 0 },
+      })
     }
 
     const games = await res.json()
