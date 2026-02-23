@@ -581,7 +581,7 @@ export function BettingPanel() {
 
             {/* Botones rapidos de monto */}
             <div className="grid grid-cols-4 gap-2">
-              {[0.001, 1, 5, 10].map((amount) => (
+              {[0, 1, 5, 10].map((amount) => (
                 <Button
                   key={amount}
                   variant={bet === amount ? "default" : "outline"}
@@ -591,7 +591,7 @@ export function BettingPanel() {
                   className="text-xs"
                 >
                   {/* 0.001 = Demo, el resto muestra el monto */}
-                  {amount < 0.01 ? "Demo" : `S/ ${amount}`}
+                  {amount === 0 ? "Demo" : `S/ ${amount}`}
                 </Button>
               ))}
             </div>
