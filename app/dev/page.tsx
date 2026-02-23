@@ -39,8 +39,14 @@ interface GameRecord {
   created_at: string
 }
 
+interface DepositRecord {
+  amount: number
+  created_at: string
+}
+
 interface GameHistoryData {
   games: GameRecord[]
+  deposits: DepositRecord[]
   stats: {
     totalGames: number
     wins: number
@@ -49,6 +55,7 @@ interface GameHistoryData {
     totalBet: number
     totalPayout: number
     net: number
+    totalDeposited: number
   }
 }
 
@@ -694,6 +701,10 @@ export default function DevPage() {
                         <p className="text-muted-foreground">Dinero ganado</p>
                         <p className="font-bold text-sm text-success">S/ {gameHistory.stats.totalPayout.toFixed(2)}</p>
                       </div>
+                      <div className="bg-secondary rounded-lg p-2 col-span-2">
+                        <p className="text-muted-foreground">Depositos totales</p>
+                        <p className="font-bold text-sm text-primary">S/ {gameHistory.stats.totalDeposited.toFixed(2)}</p>
+                      </div>
                     </div>
 
                     {/* Last 20 games */}
@@ -724,6 +735,21 @@ export default function DevPage() {
                       </div>
                     ) : (
                       <p className="text-muted-foreground text-xs text-center py-2">Sin partidas registradas</p>
+                    )}
+
+                    {/* Deposits list */}
+                    {gameHistory.deposits?.length > 0 && (
+                      <div className="space-y-1 mt-3 max-h-40 overflow-y-auto">
+                        <p className="text-xs text-muted-foreground mb-2">Depositos ({gameHistory.deposits.length})</p>
+                        {gameHistory.deposits.map((d, i) => (
+                          <div key={i} className="flex items-center justify-between px-2 py-1.5 rounded text-xs border bg-primary/10 border-primary/20">
+                            <span className="text-muted-foreground">
+                              {new Date(d.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-primary font-bold">+S/ {Number(d.amount).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </>
                 ) : (
