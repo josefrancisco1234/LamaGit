@@ -3,7 +3,6 @@
 import { Header } from "@/components/header"
 import { LeftSidebar } from "@/components/left-sidebar"
 import { BettingPanel } from "@/components/betting-panel"
-import { WalletWidget } from "@/components/wallet-widget"
 
 export default function GamePage() {
   return (
@@ -27,11 +26,6 @@ export default function GamePage() {
               <p className="text-muted-foreground text-sm mt-1">
                 Ajusta la probabilidad y tira el dado
               </p>
-            </div>
-
-            {/* Wallet Widget - centered */}
-            <div className="flex justify-center mb-6">
-              <WalletWidget />
             </div>
 
             {/* Betting Panel */}

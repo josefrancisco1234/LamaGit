@@ -5,9 +5,8 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { AuthModal } from "@/components/auth-modal"
-import { RechargeModal } from "@/components/recharge-modal"
-import { formatBalance } from "@/lib/utils"
-import { Wallet, Settings, LogOut, Sparkles } from "lucide-react"
+import { WalletWidget } from "@/components/wallet-widget"
+import { Settings, LogOut } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -16,9 +15,8 @@ import {
 } from "@/components/ui/dialog"
 
 export function Header() {
-  const { user, profile, wallet, signOut, loading } = useAuth()
+  const { user, profile, signOut, loading } = useAuth()
   const [showAuthModal, setShowAuthModal] = React.useState(false)
-  const [showRechargeModal, setShowRechargeModal] = React.useState(false)
   const [showSettings, setShowSettings] = React.useState(false)
 
   const handleLogout = async () => {
@@ -43,53 +41,36 @@ export function Header() {
         </span>
       </div>
 
+      {/* Center - Wallet Widget */}
+      <div className="absolute left-1/2 -translate-x-1/2">
+        {loading ? (
+          <div className="animate-pulse bg-muted h-10 w-48 rounded-2xl" />
+        ) : (
+          <WalletWidget />
+        )}
+      </div>
+
       {/* Right side */}
       <div className="flex items-center gap-2 sm:gap-4">
-        {loading ? (
-          <div className="animate-pulse bg-muted h-10 w-32 rounded-full" />
-        ) : user ? (
-          <>
-            {/* Balance Pill */}
-            <div className="flex items-center gap-2 bg-balance-gradient px-3 py-1.5 rounded-full shadow-lg">
-              <Wallet className="w-4 h-4 text-white" />
-              <span className="text-white font-semibold text-sm">
-                S/ {formatBalance(wallet?.balance ?? 0)}
-              </span>
-            </div>
-
-            {/* Recharge Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowRechargeModal(true)}
-              className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30"
-            >
-              <Sparkles className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Recargar</span>
-            </Button>
-
-            {/* Settings Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSettings(true)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
-          </>
-        ) : (
+        {!loading && !user && (
           <Button onClick={() => setShowAuthModal(true)} className="font-semibold">
             Iniciar Sesion
+          </Button>
+        )}
+        {!loading && user && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettings(true)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="w-5 h-5" />
           </Button>
         )}
       </div>
 
       {/* Auth Modal */}
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
-
-      {/* Recharge Modal */}
-      <RechargeModal open={showRechargeModal} onOpenChange={setShowRechargeModal} />
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
