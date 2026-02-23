@@ -68,9 +68,20 @@ export async function GET(request: NextRequest) {
     const deposits = depositsRes.ok ? await depositsRes.json() : []
     const totalDeposited = deposits.reduce((s: number, d: any) => s + Number(d.amount), 0)
 
+    // Fetch withdrawals (todos los retiros del usuario)
+    const withdrawalsRes = await fetch(
+      `${supabaseUrl}/rest/v1/withdrawal_requests?user_id=eq.${userId}&order=created_at.desc&select=amount,status,created_at`,
+      { headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
+    )
+    const withdrawals = withdrawalsRes.ok ? await withdrawalsRes.json() : []
+    const totalWithdrawn = withdrawals
+      .filter((w: any) => w.status !== 'rejected')
+      .reduce((s: number, w: any) => s + Number(w.amount), 0)
+
     return NextResponse.json({
       games,
       deposits,
+      withdrawals,
       stats: {
         totalGames,
         wins,
@@ -80,6 +91,7 @@ export async function GET(request: NextRequest) {
         totalPayout: Number(totalPayout.toFixed(2)),
         net: Number((totalPayout - totalBet).toFixed(2)),
         totalDeposited: Number(totalDeposited.toFixed(2)),
+        totalWithdrawn: Number(totalWithdrawn.toFixed(2)),
       },
     })
   } catch (error) {

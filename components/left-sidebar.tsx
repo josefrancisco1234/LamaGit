@@ -7,16 +7,17 @@ import { useAuth } from "@/components/auth-provider"
 import { AuthModal } from "@/components/auth-modal"
 import { AffiliatesModal } from "@/components/affiliates-modal"
 import { VipModal } from "@/components/vip-modal"
+import { BlogModal } from "@/components/blog-modal"
+import { ResponsibleGamingModal } from "@/components/responsible-gaming-modal"
+import { SupportModal } from "@/components/support-modal"
 import { cn } from "@/lib/utils"
 import {
   Users,
   Crown,
   BookOpen,
   Shield,
-  HelpCircle,
   MessageCircle,
   LogIn,
-  Terminal,
 } from "lucide-react"
 
 interface NavItem {
@@ -30,9 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Crown, label: "Club VIP" },
   { icon: BookOpen, label: "Blog" },
   { icon: Shield, label: "Juego Responsable" },
-  { icon: HelpCircle, label: "Centro de Ayuda" },
   { icon: MessageCircle, label: "Soporte en vivo" },
-  { icon: Terminal, label: "Dev", href: "/dev" },
 ]
 
 export function LeftSidebar() {
@@ -40,6 +39,9 @@ export function LeftSidebar() {
   const [showAuthModal, setShowAuthModal] = React.useState(false)
   const [showAffiliates, setShowAffiliates] = React.useState(false)
   const [showVip, setShowVip] = React.useState(false)
+  const [showBlog, setShowBlog] = React.useState(false)
+  const [showResponsible, setShowResponsible] = React.useState(false)
+  const [showSupport, setShowSupport] = React.useState(false)
 
   return (
     <aside className="w-[270px] border-r border-border bg-sidebar-gradient flex flex-col py-4 hidden lg:flex">
@@ -83,6 +85,36 @@ export function LeftSidebar() {
             )
           }
 
+          if (item.label === "Juego Responsable") {
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                onClick={() => setShowResponsible(true)}
+              >
+                {buttonContent}
+              </Button>
+            )
+          }
+
+          if (item.label === "Blog") {
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                onClick={() => setShowBlog(true)}
+              >
+                {buttonContent}
+              </Button>
+            )
+          }
+
           if (item.label === "Afiliados") {
             return (
               <Button
@@ -92,6 +124,21 @@ export function LeftSidebar() {
                   "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
                 )}
                 onClick={() => setShowAffiliates(true)}
+              >
+                {buttonContent}
+              </Button>
+            )
+          }
+
+          if (item.label === "Soporte en vivo") {
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                onClick={() => setShowSupport(true)}
               >
                 {buttonContent}
               </Button>
@@ -130,14 +177,14 @@ export function LeftSidebar() {
         <p className="text-xs text-muted-foreground text-center">
           LamaBet v1.0.0
         </p>
-        <p className="text-xs text-muted-foreground/60 text-center mt-1">
-          Solo para fines educativos
-        </p>
       </div>
 
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
       <AffiliatesModal open={showAffiliates} onOpenChange={setShowAffiliates} />
       <VipModal open={showVip} onOpenChange={setShowVip} />
+      <BlogModal open={showBlog} onOpenChange={setShowBlog} />
+      <ResponsibleGamingModal open={showResponsible} onOpenChange={setShowResponsible} />
+      <SupportModal open={showSupport} onOpenChange={setShowSupport} />
     </aside>
   )
 }

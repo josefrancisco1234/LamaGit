@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Trash2,
-  DollarSign,
   Users,
   RefreshCw,
   Search,
@@ -44,9 +43,16 @@ interface DepositRecord {
   created_at: string
 }
 
+interface WithdrawalRecord {
+  amount: number
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+}
+
 interface GameHistoryData {
   games: GameRecord[]
   deposits: DepositRecord[]
+  withdrawals: WithdrawalRecord[]
   stats: {
     totalGames: number
     wins: number
@@ -56,6 +62,7 @@ interface GameHistoryData {
     totalPayout: number
     net: number
     totalDeposited: number
+    totalWithdrawn: number
   }
 }
 
@@ -68,6 +75,28 @@ interface RechargeRequest {
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
   resolved_at?: string
+}
+
+interface WithdrawalRequest {
+  id: string
+  user_id: string
+  username: string
+  amount: number
+  holder_name: string
+  phone: string
+  document_id: string
+  cci: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  resolved_at?: string
+}
+
+interface CommunityMessage {
+  id: string
+  user_id: string
+  username: string
+  message: string
+  created_at: string
 }
 
 export default function DevPage() {
@@ -83,8 +112,11 @@ export default function DevPage() {
   const [actionLog, setActionLog] = React.useState<string[]>([])
   const [recharges, setRecharges] = React.useState<RechargeRequest[]>([])
   const [loadingRecharges, setLoadingRecharges] = React.useState(false)
+  const [withdrawals, setWithdrawals] = React.useState<WithdrawalRequest[]>([])
+  const [loadingWithdrawals, setLoadingWithdrawals] = React.useState(false)
   const [gameHistory, setGameHistory] = React.useState<GameHistoryData | null>(null)
   const [loadingHistory, setLoadingHistory] = React.useState(false)
+  const [communityMessages, setCommunityMessages] = React.useState<CommunityMessage[]>([])
 
   // Guardar password para usarla en las llamadas API
   const passwordRef = React.useRef("")
@@ -100,10 +132,14 @@ export default function DevPage() {
     // Cargar al entrar
     fetchUsers()
     fetchRecharges()
+    fetchWithdrawals()
+    fetchCommunityChat()
 
     const interval = setInterval(() => {
       fetchUserssilent()
       fetchRechargesSilent()
+      fetchWithdrawalsSilent()
+      fetchCommunityChat()
     }, 5000)
 
     return () => clearInterval(interval)
@@ -221,29 +257,6 @@ export default function DevPage() {
     }
   }
 
-  const resetAllBalances = async (amount: number) => {
-    if (!confirm(`Seguro que quieres poner TODOS los balances en S/ ${amount}?`)) {
-      return
-    }
-    try {
-      const res = await fetch('/api/admin/global', {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ action: 'reset_all_balances', amount }),
-      })
-
-      if (res.ok) {
-        addLog(`TODOS los balances reseteados a S/ ${amount}`)
-        fetchUsers()
-      } else {
-        const error = await res.json()
-        addLog(`Error: ${error.error || res.status}`)
-      }
-    } catch (error) {
-      addLog(`Error: ${error}`)
-    }
-  }
-
   // Silent versions (no loading spinners, no logs) for auto-refresh
   const fetchUserssilent = async () => {
     try {
@@ -263,6 +276,73 @@ export default function DevPage() {
         setRecharges(data)
       }
     } catch {}
+  }
+
+  const fetchWithdrawals = async () => {
+    setLoadingWithdrawals(true)
+    try {
+      const res = await fetch('/api/admin/withdrawals', { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        setWithdrawals(data)
+        const pending = data.filter((w: WithdrawalRequest) => w.status === 'pending').length
+        addLog(`Cargados ${data.length} retiros (${pending} pendientes)`)
+      }
+    } catch (error) {
+      addLog(`Error cargando retiros: ${error}`)
+    }
+    setLoadingWithdrawals(false)
+  }
+
+  const fetchWithdrawalsSilent = async () => {
+    try {
+      const res = await fetch('/api/admin/withdrawals', { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        setWithdrawals(data)
+      }
+    } catch {}
+  }
+
+  const fetchCommunityChat = async () => {
+    try {
+      const res = await fetch('/api/admin/chat', { headers: getHeaders() })
+      if (res.ok) setCommunityMessages(await res.json())
+    } catch {}
+  }
+
+  const resetCommunityChat = async () => {
+    if (!confirm('Seguro que quieres borrar TODOS los mensajes del chat? Esta accion no se puede deshacer.')) return
+    try {
+      const res = await fetch('/api/admin/chat', { method: 'DELETE', headers: getHeaders() })
+      if (res.ok) {
+        addLog('Chat comunitario reseteado')
+        setCommunityMessages([])
+      } else {
+        addLog('Error reseteando chat')
+      }
+    } catch {}
+  }
+
+  const handleWithdrawal = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      const res = await fetch('/api/admin/withdrawals', {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ id, action }),
+      })
+      if (res.ok) {
+        const w = withdrawals.find(w => w.id === id)
+        addLog(`Retiro de ${w?.username} (S/ ${w?.amount}) ${action === 'approve' ? 'APROBADO — balance deducido' : 'RECHAZADO'}`)
+        fetchWithdrawals()
+        fetchUsers()
+      } else {
+        const error = await res.json()
+        addLog(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      addLog(`Error: ${error}`)
+    }
   }
 
   // Recargas
@@ -433,6 +513,73 @@ export default function DevPage() {
           )}
         </div>
 
+        {/* Retiros Pendientes */}
+        {(() => {
+          const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending')
+          return (
+            <div className="bg-card border border-border rounded-xl p-4 mb-6" style={{ borderColor: 'rgba(34,197,94,0.3)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  Retiros Pendientes ({pendingWithdrawals.length})
+                </h2>
+                <Button onClick={fetchWithdrawals} disabled={loadingWithdrawals} size="sm">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loadingWithdrawals ? 'animate-spin' : ''}`} />
+                  {loadingWithdrawals ? 'Cargando...' : 'Cargar'}
+                </Button>
+              </div>
+
+              {pendingWithdrawals.length > 0 ? (
+                <div className="space-y-3">
+                  {pendingWithdrawals.map((w) => (
+                    <div key={w.id} className="bg-secondary/30 rounded-lg p-3 border" style={{ borderColor: 'rgba(34,197,94,0.25)' }}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold">{w.username}</span>
+                            <span className="text-xl font-bold text-green-400">S/ {Number(w.amount).toFixed(2)}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                            <span><strong className="text-foreground">Titular:</strong> {w.holder_name || '—'}</span>
+                            <span><strong className="text-foreground">Celular:</strong> +51 {w.phone}</span>
+                            <span><strong className="text-foreground">DNI:</strong> {w.document_id}</span>
+                            <span><strong className="text-foreground">CCI:</strong> {w.cci}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(w.created_at).toLocaleString('es-PE')}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            className="bg-success hover:bg-success/80 text-white"
+                            onClick={() => handleWithdrawal(w.id, 'approve')}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Aprobar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleWithdrawal(w.id, 'reject')}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Rechazar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-4">
+                  {withdrawals.length === 0 ? 'Haz clic en "Cargar" para ver los retiros' : 'No hay retiros pendientes'}
+                </p>
+              )}
+            </div>
+          )
+        })()}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Users List */}
           <div className="lg:col-span-2 bg-card border border-border rounded-xl p-4">
@@ -539,55 +686,33 @@ export default function DevPage() {
                     <p><strong>Balance:</strong> S/ {Number(selectedUser.balance).toFixed(2)}</p>
                   </div>
 
-                  {/* Set Balance */}
+                  {/* Add / Subtract Balance */}
                   <div>
-                    <label className="text-sm text-muted-foreground">Forzar Balance</label>
+                    <label className="text-sm text-muted-foreground">Ajustar Balance</label>
                     <div className="flex gap-2 mt-1">
                       <Input
                         type="number"
                         value={newBalance}
                         onChange={(e) => setNewBalance(e.target.value)}
-                        placeholder="Nuevo balance"
+                        placeholder="Monto"
+                        min={0}
                       />
                       <Button
-                        onClick={() => setUserBalance(selectedUser.id, Number(newBalance))}
-                        disabled={!newBalance}
+                        onClick={() => addToBalance(selectedUser.id, Number(newBalance))}
+                        disabled={!newBalance || Number(newBalance) <= 0}
+                        className="shrink-0"
                       >
-                        <DollarSign className="w-4 h-4" />
+                        +S/
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => addToBalance(selectedUser.id, -Number(newBalance))}
+                        disabled={!newBalance || Number(newBalance) <= 0}
+                        className="shrink-0"
+                      >
+                        -S/
                       </Button>
                     </div>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addToBalance(selectedUser.id, 100)}
-                    >
-                      +S/ 100
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addToBalance(selectedUser.id, 1000)}
-                    >
-                      +S/ 1000
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addToBalance(selectedUser.id, -100)}
-                    >
-                      -S/ 100
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setUserBalance(selectedUser.id, 0)}
-                    >
-                      Poner en 0
-                    </Button>
                   </div>
 
                   {/* Ban/Unban */}
@@ -626,28 +751,6 @@ export default function DevPage() {
               )}
             </div>
 
-            {/* Global Actions */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h2 className="text-lg font-semibold mb-4">Acciones Globales</h2>
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => resetAllBalances(100)}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Reset todos a S/ 100
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => resetAllBalances(1000)}
-                >
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Dar S/ 1000 a todos
-                </Button>
-              </div>
-            </div>
 
             {/* Game History */}
             {selectedUser && (
@@ -701,9 +804,13 @@ export default function DevPage() {
                         <p className="text-muted-foreground">Dinero ganado</p>
                         <p className="font-bold text-sm text-success">S/ {gameHistory.stats.totalPayout.toFixed(2)}</p>
                       </div>
-                      <div className="bg-secondary rounded-lg p-2 col-span-2">
+                      <div className="bg-secondary rounded-lg p-2">
                         <p className="text-muted-foreground">Depositos totales</p>
                         <p className="font-bold text-sm text-primary">S/ {gameHistory.stats.totalDeposited.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Retirado total</p>
+                        <p className="font-bold text-sm text-destructive">-S/ {(gameHistory.stats.totalWithdrawn ?? 0).toFixed(2)}</p>
                       </div>
                     </div>
 
@@ -751,12 +858,85 @@ export default function DevPage() {
                         ))}
                       </div>
                     )}
+
+                    {/* Withdrawals list */}
+                    {gameHistory.withdrawals?.length > 0 && (
+                      <div className="space-y-1 mt-3 max-h-40 overflow-y-auto">
+                        <p className="text-xs text-muted-foreground mb-2">Retiros ({gameHistory.withdrawals.length})</p>
+                        {gameHistory.withdrawals.map((w, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-center justify-between px-2 py-1.5 rounded text-xs border ${
+                              w.status === 'approved'
+                                ? 'bg-destructive/10 border-destructive/20'
+                                : w.status === 'rejected'
+                                ? 'bg-secondary border-border'
+                                : 'bg-yellow-500/10 border-yellow-500/20'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold ${
+                                w.status === 'approved' ? 'text-destructive' :
+                                w.status === 'rejected' ? 'text-muted-foreground' :
+                                'text-yellow-400'
+                              }`}>
+                                {w.status === 'approved' ? 'APROBADO' : w.status === 'rejected' ? 'RECHAZADO' : 'PENDIENTE'}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {new Date(w.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <span className={`font-bold ${w.status === 'rejected' ? 'text-muted-foreground line-through' : 'text-destructive'}`}>
+                              -S/ {Number(w.amount).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <p className="text-muted-foreground text-sm text-center py-4">Error cargando historial</p>
                 )}
               </div>
             )}
+
+            {/* Chat Comunitario */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                  Chat Comunitario ({communityMessages.length})
+                </h2>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={resetCommunityChat}
+                  disabled={communityMessages.length === 0}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Reset
+                </Button>
+              </div>
+
+              {communityMessages.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">Sin mensajes aún</p>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {communityMessages.map((m) => (
+                    <div key={m.id} className="flex items-start gap-2 px-2 py-1.5 rounded text-xs border bg-secondary/30 border-border/50">
+                      <span className="font-bold text-primary shrink-0">{m.username}</span>
+                      <span className="text-foreground flex-1 break-words">{m.message}</span>
+                      <span className="text-muted-foreground shrink-0">
+                        {new Date(m.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Action Log */}
             <div className="bg-card border border-border rounded-xl p-4">

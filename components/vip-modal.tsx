@@ -228,12 +228,14 @@ export function VipModal({ open, onOpenChange }: VipModalProps) {
           >
             <Mail className="w-4 h-4 text-yellow-400 shrink-0" />
             <p className="text-sm text-gray-400">
-              Si deseas más información contactar con{" "}
+              Si deseas más información contactar por{" "}
               <a
-                href="mailto:informacion@Lamabet.net"
+                href="https://wa.me/17869392784"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-yellow-400 font-semibold hover:underline"
               >
-                informacion@Lamabet.net
+                WhatsApp +1 (786) 939-2784
               </a>
             </p>
           </div>

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/components/auth-provider"
 import { useToast } from "@/hooks/use-toast"
 import { formatBalance } from "@/lib/utils"
-import { Loader2, Clock, Sparkles } from "lucide-react"
+import { Loader2, Clock, Sparkles, ArrowDownToLine, ArrowUpFromLine, CheckCircle2 } from "lucide-react"
 
 interface RechargeModalProps {
   open: boolean
@@ -19,18 +19,32 @@ interface RechargeModalProps {
 }
 
 type RechargeState = "setup" | "payment-method" | "generating" | "pending" | "verifying" | "approved"
+type ActiveTab = "depositar" | "retirar"
 
 const PRESET_AMOUNTS = [5, 10, 20, 50]
 const MIN_AMOUNT = 5
 const QR_TIMEOUT = 300
 
 export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
+  const [activeTab, setActiveTab] = React.useState<ActiveTab>("depositar")
+
+  // ── Deposit state ──
   const [amount, setAmount] = React.useState<number>(10)
   const [state, setState] = React.useState<RechargeState>("setup")
   const [timeLeft, setTimeLeft] = React.useState(QR_TIMEOUT)
   const [tempCode, setTempCode] = React.useState("")
 
-  const { user } = useAuth()
+  // ── Withdrawal state ──
+  const [wAmount, setWAmount] = React.useState<number>(10)
+  const [wName, setWName] = React.useState("")
+  const [wPhone, setWPhone] = React.useState("")
+  const [wDocType, setWDocType] = React.useState<"dni" | "pasaporte">("dni")
+  const [wId, setWId] = React.useState("")
+  const [wCci, setWCci] = React.useState("")
+  const [wLoading, setWLoading] = React.useState(false)
+  const [wDone, setWDone] = React.useState(false)
+
+  const { user, wallet } = useAuth()
   const { toast } = useToast()
 
   const generateCode = () =>
@@ -40,11 +54,70 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
     setState("setup")
     setTimeLeft(QR_TIMEOUT)
     setTempCode("")
+    setWAmount(10)
+    setWName("")
+    setWPhone("")
+    setWDocType("dni")
+    setWId("")
+    setWCci("")
+    setWLoading(false)
+    setWDone(false)
   }
 
   const handleClose = (open: boolean) => {
-    if (!open) resetModal()
+    if (!open) { resetModal(); setActiveTab("depositar") }
     onOpenChange(open)
+  }
+
+  const handleWithdraw = async () => {
+    if (!user) return
+    if (!wName.trim() || !wPhone.trim() || !wId.trim() || !wCci.trim()) {
+      toast({ title: "Campos incompletos", description: "Completa todos los campos", variant: "destructive" })
+      return
+    }
+    if (wDocType === "dni" && wId.length !== 8) {
+      toast({ title: "DNI inválido", description: "El DNI debe tener exactamente 8 dígitos", variant: "destructive" })
+      return
+    }
+    if (wDocType === "pasaporte" && wId.trim().length < 6) {
+      toast({ title: "Pasaporte inválido", description: "Ingresa un número de pasaporte válido", variant: "destructive" })
+      return
+    }
+    if (wCci.length !== 20) {
+      toast({ title: "CCI inválido", description: "El CCI debe tener exactamente 20 dígitos", variant: "destructive" })
+      return
+    }
+    if (wAmount < 10) {
+      toast({ title: "Monto invalido", description: "Minimo S/ 10 para retirar", variant: "destructive" })
+      return
+    }
+    const balance = wallet?.balance ?? 0
+    if (wAmount > balance) {
+      toast({ title: "Saldo insuficiente", description: `Tu saldo es S/ ${formatBalance(balance)}`, variant: "destructive" })
+      return
+    }
+    setWLoading(true)
+    try {
+      const res = await fetch("/api/withdrawals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          username: user.user_metadata?.username || user.email || "Sin nombre",
+          amount: wAmount,
+          holder_name: wName.trim(),
+          phone: wPhone.trim(),
+          document_id: wId.trim(),
+          cci: wCci.trim(),
+        }),
+      })
+      if (!res.ok) throw new Error("Failed")
+      setWDone(true)
+    } catch {
+      toast({ title: "Error", description: "No se pudo enviar la solicitud", variant: "destructive" })
+    } finally {
+      setWLoading(false)
+    }
   }
 
   // Timer
@@ -375,20 +448,50 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
 
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="rm-content max-w-md p-0 gap-0">
-          <div className="p-6 space-y-5 relative z-10">
+          <div className="relative z-10">
 
             {/* HEADER */}
-            <DialogHeader className="pb-1">
-              <DialogTitle
-                className="text-center text-xl font-bold"
-                style={{ color: "#f0b616", letterSpacing: "0.04em" }}
-              >
-                Recargar Billetera
-              </DialogTitle>
-            </DialogHeader>
+            <div className="px-6 pt-6 pb-0">
+              <DialogHeader className="pb-3">
+                <DialogTitle
+                  className="text-center text-xl font-bold"
+                  style={{ color: "#f0b616", letterSpacing: "0.04em" }}
+                >
+                  Billetera
+                </DialogTitle>
+              </DialogHeader>
 
-            {/* ======================== SETUP ======================== */}
-            {state === "setup" && (
+              {/* TABS */}
+              <div className="flex gap-1 p-1 rounded-xl mb-1" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <button
+                  onClick={() => setActiveTab("depositar")}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all duration-200"
+                  style={activeTab === "depositar"
+                    ? { background: "rgba(240,182,22,0.18)", color: "#f0b616", border: "1px solid rgba(240,182,22,0.4)" }
+                    : { color: "#64748b", background: "transparent", border: "1px solid transparent" }
+                  }
+                >
+                  <ArrowDownToLine className="w-4 h-4" />
+                  Depositar
+                </button>
+                <button
+                  onClick={() => { setActiveTab("retirar"); setWDone(false) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all duration-200"
+                  style={activeTab === "retirar"
+                    ? { background: "rgba(34,197,94,0.18)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.4)" }
+                    : { color: "#64748b", background: "transparent", border: "1px solid transparent" }
+                  }
+                >
+                  <ArrowUpFromLine className="w-4 h-4" />
+                  Retirar
+                </button>
+              </div>
+            </div>
+
+          <div className="p-6 pt-4 space-y-5">
+
+            {/* ======================== DEPOSITAR TAB ======================== */}
+            {activeTab === "depositar" && state === "setup" && (
               <div className="space-y-5">
                 {/* Montos preestablecidos */}
                 <div>
@@ -442,7 +545,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
             )}
 
             {/* ======================== PAYMENT METHOD ======================== */}
-            {state === "payment-method" && (
+            {activeTab === "depositar" && state === "payment-method" && (
               <div className="space-y-5">
                 {/* Monto seleccionado */}
                 <div className="text-center py-3 rounded-xl" style={{ background: "rgba(240,182,22,0.08)", border: "1px solid rgba(240,182,22,0.2)" }}>
@@ -484,7 +587,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
             )}
 
             {/* ======================== GENERATING ======================== */}
-            {state === "generating" && (
+            {activeTab === "depositar" && state === "generating" && (
               <div className="py-8 text-center space-y-6">
                 {/* Dado girando con glow */}
                 <div className="flex justify-center">
@@ -527,7 +630,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
             )}
 
             {/* ======================== PENDING ======================== */}
-            {state === "pending" && (
+            {activeTab === "depositar" && state === "pending" && (
               <div className="space-y-4">
                 {/* Monto */}
                 <div className="text-center py-3 rounded-xl" style={{ background: "rgba(240,182,22,0.08)", border: "1px solid rgba(240,182,22,0.2)" }}>
@@ -577,7 +680,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
             )}
 
             {/* ======================== VERIFYING ======================== */}
-            {state === "verifying" && (
+            {activeTab === "depositar" && state === "verifying" && (
               <div className="py-10 text-center space-y-4">
                 <div style={{
                   width: "64px", height: "64px", margin: "0 auto",
@@ -594,7 +697,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
             )}
 
             {/* ======================== APPROVED ======================== */}
-            {state === "approved" && (
+            {activeTab === "depositar" && state === "approved" && (
               <div className="py-8 text-center space-y-4">
                 <div style={{
                   width: "72px", height: "72px", margin: "0 auto",
@@ -624,6 +727,216 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               </div>
             )}
 
+            {/* ======================== RETIRAR TAB ======================== */}
+            {activeTab === "retirar" && !wDone && (
+              <div className="space-y-4">
+                {/* Saldo disponible */}
+                <div className="text-center py-3 rounded-xl" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <p className="text-xs mb-1" style={{ color: "#64748b", letterSpacing: "0.1em" }}>SALDO DISPONIBLE</p>
+                  <p className="text-3xl font-black" style={{ color: "#22c55e" }}>
+                    S/ {formatBalance(wallet?.balance ?? 0)}
+                  </p>
+                </div>
+
+                {/* Monto */}
+                <div className="space-y-2">
+                  <p className="text-xs" style={{ color: "#94a3b8", letterSpacing: "0.08em" }}>MONTO A RETIRAR</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[10, 20, 50, 100].map((v) => (
+                      <button
+                        key={v}
+                        className={`rm-preset-btn ${wAmount === v ? "active" : ""}`}
+                        onClick={() => setWAmount(v)}
+                      >
+                        S/ {v}
+                      </button>
+                    ))}
+                    <button
+                      className={`rm-preset-btn ${wAmount === (wallet?.balance ?? 0) ? "active" : ""}`}
+                      onClick={() => setWAmount(wallet?.balance ?? 0)}
+                      style={{ color: "#22c55e", borderColor: "rgba(34,197,94,0.5)" }}
+                    >
+                      Max
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span style={{ color: "#22c55e", fontWeight: 700 }}>S/</span>
+                    <Input
+                      type="number"
+                      value={wAmount}
+                      onChange={(e) => setWAmount(Number(e.target.value))}
+                      min={10}
+                      step={1}
+                      className="rm-input"
+                    />
+                  </div>
+                  <p className="text-xs" style={{ color: "#64748b" }}>Mínimo S/ 10</p>
+                </div>
+
+                {/* Datos bancarios */}
+                <div className="space-y-3">
+                  <p className="text-xs" style={{ color: "#94a3b8", letterSpacing: "0.08em" }}>DATOS DE RETIRO</p>
+
+                  <div className="space-y-1">
+                    <label className="text-xs" style={{ color: "#64748b" }}>Nombre del titular</label>
+                    <Input
+                      placeholder="Ej: Juan Pérez García"
+                      value={wName}
+                      onChange={(e) => setWName(e.target.value)}
+                      className="rm-input"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs" style={{ color: "#64748b" }}>Número de celular</label>
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-2 rounded-lg text-sm font-bold shrink-0"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(240,182,22,0.25)", color: "#94a3b8" }}>
+                        +51
+                      </span>
+                      <Input
+                        placeholder="987654321"
+                        value={wPhone}
+                        onChange={(e) => setWPhone(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                        className="rm-input"
+                        maxLength={9}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    {/* Selector DNI / Pasaporte */}
+                    <div className="flex gap-1 mb-1">
+                      <button
+                        type="button"
+                        onClick={() => { setWDocType("dni"); setWId("") }}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all duration-150"
+                        style={wDocType === "dni"
+                          ? { background: "rgba(34,197,94,0.18)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.4)" }
+                          : { background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }
+                        }
+                      >
+                        DNI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setWDocType("pasaporte"); setWId("") }}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all duration-150"
+                        style={wDocType === "pasaporte"
+                          ? { background: "rgba(34,197,94,0.18)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.4)" }
+                          : { background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }
+                        }
+                      >
+                        Pasaporte
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs" style={{ color: "#64748b" }}>
+                        {wDocType === "dni" ? "DNI (8 dígitos)" : "Número de pasaporte"}
+                      </label>
+                      {wDocType === "dni" && (
+                        <span className="text-xs" style={{ color: wId.length === 8 ? "#22c55e" : "#64748b" }}>
+                          {wId.length}/8
+                        </span>
+                      )}
+                    </div>
+                    {wDocType === "dni" ? (
+                      <Input
+                        placeholder="12345678"
+                        value={wId}
+                        onChange={(e) => setWId(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                        className="rm-input"
+                        maxLength={8}
+                      />
+                    ) : (
+                      <Input
+                        placeholder="Ej: AB123456"
+                        value={wId}
+                        onChange={(e) => setWId(e.target.value.toUpperCase().slice(0, 12))}
+                        className="rm-input"
+                        maxLength={12}
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs" style={{ color: "#64748b" }}>Cuenta bancaria CCI (20 dígitos)</label>
+                      <span className="text-xs" style={{ color: wCci.length === 20 ? "#22c55e" : "#64748b" }}>
+                        {wCci.length}/20
+                      </span>
+                    </div>
+                    <Input
+                      placeholder="00219100123456789012"
+                      value={wCci}
+                      onChange={(e) => setWCci(e.target.value.replace(/\D/g, "").slice(0, 20))}
+                      className="rm-input"
+                      maxLength={20}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  className="rm-btn-gold"
+                  style={{
+                    background: "linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #22c55e 100%)",
+                    backgroundSize: "200% 200%",
+                    boxShadow: "0 4px 20px rgba(34,197,94,0.3)",
+                  }}
+                  onClick={handleWithdraw}
+                  disabled={
+                    wLoading ||
+                    !wName.trim() ||
+                    !wPhone.trim() ||
+                    !wId.trim() ||
+                    !wCci.trim() ||
+                    wAmount < 10 ||
+                    (wDocType === "dni" && wId.length !== 8) ||
+                    (wDocType === "pasaporte" && wId.trim().length < 6) ||
+                    wCci.length !== 20
+                  }
+                >
+                  {wLoading
+                    ? <><Loader2 className="inline w-4 h-4 mr-2 animate-spin" />Enviando...</>
+                    : <><ArrowUpFromLine className="inline w-4 h-4 mr-2" />Solicitar Retiro</>
+                  }
+                </button>
+
+                <p className="text-xs text-center" style={{ color: "#475569" }}>
+                  El retiro será procesado manualmente en un plazo de 24–48h.
+                </p>
+              </div>
+            )}
+
+            {/* ======================== RETIRO ENVIADO ======================== */}
+            {activeTab === "retirar" && wDone && (
+              <div className="py-8 text-center space-y-4">
+                <div style={{
+                  width: "72px", height: "72px", margin: "0 auto",
+                  borderRadius: "50%",
+                  background: "rgba(34,197,94,0.12)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 0 40px rgba(34,197,94,0.25)"
+                }}>
+                  <CheckCircle2 className="w-9 h-9" style={{ color: "#22c55e" }} />
+                </div>
+                <p className="text-lg font-bold" style={{ color: "#22c55e" }}>Solicitud Enviada!</p>
+                <p className="text-3xl font-black" style={{ color: "#e2e8f0" }}>
+                  S/ {formatBalance(wAmount)}
+                </p>
+                <p className="text-sm" style={{ color: "#94a3b8" }}>
+                  Tu solicitud de retiro está siendo procesada.
+                  <br />
+                  Recibirás el pago en tu cuenta en 24–48h.
+                </p>
+                <button className="rm-btn-gold" onClick={() => handleClose(false)}>
+                  Entendido
+                </button>
+              </div>
+            )}
+
+          </div>
           </div>
         </DialogContent>
       </Dialog>

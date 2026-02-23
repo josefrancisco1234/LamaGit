@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { LoadingWrapper } from "@/components/loading-wrapper"
+import { LiveChat } from "@/components/live-chat"
 
 export const metadata: Metadata = {
   title: "LamaBet - Juego de Dados Online",
@@ -23,6 +24,7 @@ export default function RootLayout({
             <LoadingWrapper>
               {children}
             </LoadingWrapper>
+            <LiveChat />
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

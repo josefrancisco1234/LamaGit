@@ -14,10 +14,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+function useGlobalStats() {
+  const [stats, setStats] = React.useState({ totalGames: 0, totalBet: 0 })
+
+  React.useEffect(() => {
+    const fetch_ = () =>
+      fetch('/api/stats')
+        .then(r => r.json())
+        .then(d => setStats(d))
+        .catch(() => {})
+
+    fetch_()
+    const id = setInterval(fetch_, 8000)
+    return () => clearInterval(id)
+  }, [])
+
+  return stats
+}
+
 export function Header() {
   const { user, profile, signOut, loading } = useAuth()
   const [showAuthModal, setShowAuthModal] = React.useState(false)
   const [showSettings, setShowSettings] = React.useState(false)
+  const stats = useGlobalStats()
 
   const handleLogout = async () => {
     await signOut()
@@ -36,9 +55,26 @@ export function Header() {
           className="object-contain"
           priority
         />
-        <span className="text-xl font-bold text-primary hidden sm:block">
-          LamaBet
-        </span>
+        <div className="hidden sm:flex flex-col">
+          <span className="text-xl font-bold text-primary leading-tight">
+            LamaBet
+          </span>
+          {/* Live global stats */}
+          <div className="flex items-center gap-2 mt-0.5">
+            {/* Pulse indicator */}
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+            </span>
+            <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
+              {stats.totalGames.toLocaleString('es-PE')} partidas
+            </span>
+            <span className="text-[10px] text-muted-foreground">·</span>
+            <span className="text-[10px] font-semibold tabular-nums" style={{ color: "#f0b616" }}>
+              S/ {stats.totalBet.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} apostados
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Center - Wallet Widget, centered over content area */}
