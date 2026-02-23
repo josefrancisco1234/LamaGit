@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useAuth } from "@/components/auth-provider"
-import { getAffiliateStats, type AffiliateStats } from "@/lib/affiliates"
-import { Copy, Check, Users, TrendingUp, Coins } from "lucide-react"
+import { getAffiliateStats, setReferredBy, type AffiliateStats } from "@/lib/affiliates"
+import { Copy, Check, Users, TrendingUp, Coins, Link2 } from "lucide-react"
 import { formatBalance } from "@/lib/utils"
 
 interface AffiliatesModalProps {
@@ -28,6 +29,9 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
     recentEarnings: [],
   })
   const [loadingStats, setLoadingStats] = React.useState(false)
+  const [refInput, setRefInput] = React.useState("")
+  const [refLoading, setRefLoading] = React.useState(false)
+  const [refMsg, setRefMsg] = React.useState<{ text: string; ok: boolean } | null>(null)
 
   const referralCode = profile?.username ?? ""
   const referralUrl =
@@ -59,14 +63,28 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
     })
   }
 
+  const handleActivateRef = async () => {
+    if (!user || !refInput.trim()) return
+    setRefLoading(true)
+    setRefMsg(null)
+    const ok = await setReferredBy(user.id, refInput.trim())
+    setRefLoading(false)
+    if (ok) {
+      setRefMsg({ text: "Codigo activado correctamente!", ok: true })
+      setRefInput("")
+    } else {
+      setRefMsg({ text: "Codigo invalido o no encontrado.", ok: false })
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-lg p-0 overflow-hidden">
+      <DialogContent className="bg-card border-border max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="text-lg font-bold">Referir y ganar</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="referir" className="w-full">
+        <Tabs defaultValue="referir" className="w-full flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-2 bg-secondary rounded-none border-b border-border h-12">
             <TabsTrigger value="referir" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
               Referir Amigos
@@ -77,7 +95,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
           </TabsList>
 
           {/* ─── TAB 1: REFERIR AMIGOS ─── */}
-          <TabsContent value="referir" className="p-6 space-y-5 mt-0">
+          <TabsContent value="referir" className="p-6 space-y-5 mt-0 overflow-y-auto flex-1">
             {/* Banner */}
             <div
               className="rounded-xl p-6 relative overflow-hidden"
@@ -180,7 +198,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
           </TabsContent>
 
           {/* ─── TAB 2: MIS GANANCIAS ─── */}
-          <TabsContent value="ganancias" className="p-6 space-y-4 mt-0">
+          <TabsContent value="ganancias" className="p-6 space-y-4 mt-0 overflow-y-auto flex-1">
             {loadingStats ? (
               <div className="text-center text-muted-foreground py-8">Cargando...</div>
             ) : (
@@ -220,6 +238,35 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
                     <p className="text-xs text-muted-foreground">Comision por partida</p>
                     <p className="text-2xl font-black text-primary">1%</p>
                   </div>
+                </div>
+
+                {/* Activar codigo de referido */}
+                <div className="bg-secondary rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm font-semibold">Tienes un codigo de referido?</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ej: juanperez"
+                      value={refInput}
+                      onChange={(e) => { setRefInput(e.target.value); setRefMsg(null) }}
+                      className="bg-background border-border text-sm"
+                      disabled={refLoading}
+                    />
+                    <Button
+                      onClick={handleActivateRef}
+                      disabled={refLoading || !refInput.trim()}
+                      className="shrink-0 bg-primary text-primary-foreground font-bold px-4"
+                    >
+                      {refLoading ? "..." : "Activar"}
+                    </Button>
+                  </div>
+                  {refMsg && (
+                    <p className={`text-xs ${refMsg.ok ? "text-success" : "text-destructive"}`}>
+                      {refMsg.text}
+                    </p>
+                  )}
                 </div>
 
                 {/* Recent earnings */}
