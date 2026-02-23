@@ -102,21 +102,28 @@ export function ProbabilityDisplay({
           </span>
         </div>
 
-        {/* Markers 0 - 25 - 50 - 75 - 100 */}
-        <div className="flex justify-between px-1" style={{ marginBottom: "4px" }}>
+        {/* Markers 0 - 25 - 50 - 75 - 100 alineados al slider (max=99) */}
+        <div className="relative h-5" style={{ marginBottom: "2px" }}>
           {[
-            { label: "0",   color: "#22c55e" },
-            { label: "25",  color: "#ffffff" },
-            { label: "50",  color: "#ffffff" },
-            { label: "75",  color: "#ffffff" },
-            { label: "100", color: "#ef4444" },
-          ].map(({ label, color }) => (
+            { label: "0",   pos: 0,       color: "#22c55e", anchor: "left"   },
+            { label: "25",  pos: 25 / 99, color: "#ffffff", anchor: "center" },
+            { label: "50",  pos: 50 / 99, color: "#ffffff", anchor: "center" },
+            { label: "75",  pos: 75 / 99, color: "#ffffff", anchor: "center" },
+            { label: "100", pos: 1,       color: "#ef4444", anchor: "right"  },
+          ].map(({ label, pos, color, anchor }) => (
             <span
               key={label}
               style={{
+                position: "absolute",
+                left: `${pos * 100}%`,
+                transform:
+                  anchor === "center" ? "translateX(-50%)"
+                  : anchor === "right"  ? "translateX(-100%)"
+                  : "none",
                 color,
                 fontWeight: 800,
                 fontSize: "0.85rem",
+                lineHeight: 1,
                 textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
               }}
             >
