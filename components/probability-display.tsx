@@ -108,14 +108,14 @@ export function ProbabilityDisplay({
             { label: "0",   pos: 0,       color: "#22c55e", anchor: "left"   },
             { label: "25",  pos: 25 / 99, color: "#ffffff", anchor: "center" },
             { label: "50",  pos: 50 / 99, color: "#ffffff", anchor: "center" },
-            { label: "75",  pos: 75 / 99, color: "#ffffff", anchor: "center" },
+            { label: "75",  pos: 75 / 99, color: "#ffffff", anchor: "center", extra: 5 },
             { label: "100", pos: 1,       color: "#ef4444", anchor: "right"  },
-          ].map(({ label, pos, color, anchor }) => (
+          ].map(({ label, pos, color, anchor, extra = 0 }) => (
             <span
               key={label}
               style={{
                 position: "absolute",
-                left: `${pos * 100}%`,
+                left: extra ? `calc(${pos * 100}% + ${extra}px)` : `${pos * 100}%`,
                 transform:
                   anchor === "center" ? "translateX(-50%)"
                   : anchor === "right"  ? "translateX(-100%)"
