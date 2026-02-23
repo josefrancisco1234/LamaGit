@@ -84,6 +84,21 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
           <DialogTitle className="text-lg font-bold">Referir y ganar</DialogTitle>
         </DialogHeader>
 
+        {!user ? (
+          <div className="flex flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+            <div className="text-4xl">🔒</div>
+            <p className="text-base font-semibold">Inicia sesion para continuar</p>
+            <p className="text-sm text-muted-foreground">
+              Para ver tu codigo de referido y tus ganancias necesitas tener una cuenta.
+            </p>
+            <Button
+              className="bg-primary text-primary-foreground font-bold px-6"
+              onClick={() => onOpenChange(false)}
+            >
+              Cerrar
+            </Button>
+          </div>
+        ) : (
         <Tabs defaultValue="referir" className="w-full flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-2 bg-secondary rounded-none border-b border-border h-12">
             <TabsTrigger value="referir" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
@@ -302,6 +317,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
             )}
           </TabsContent>
         </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   )
