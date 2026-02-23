@@ -25,7 +25,7 @@ export function Header() {
   }
 
   return (
-    <header className="h-[72px] border-b border-border bg-header-gradient flex items-center justify-between px-4 lg:px-6">
+    <header className="relative h-[72px] border-b border-border bg-header-gradient flex items-center justify-between px-4 lg:px-6">
       {/* Logo */}
       <div className="flex items-center gap-3">
         <Image
