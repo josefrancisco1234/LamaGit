@@ -103,16 +103,30 @@ export function ProbabilityDisplay({
         </div>
 
         {/* Markers 0 - 25 - 50 - 75 - 100 */}
-        <div className="flex justify-between text-xs font-semibold text-muted-foreground px-1">
-          <span className="text-success">0</span>
-          <span>25</span>
-          <span>50</span>
-          <span>75</span>
-          <span className="text-destructive">100</span>
+        <div className="flex justify-between px-1" style={{ marginBottom: "4px" }}>
+          {[
+            { label: "0",   color: "#22c55e" },
+            { label: "25",  color: "#ffffff" },
+            { label: "50",  color: "#ffffff" },
+            { label: "75",  color: "#ffffff" },
+            { label: "100", color: "#ef4444" },
+          ].map(({ label, color }) => (
+            <span
+              key={label}
+              style={{
+                color,
+                fontWeight: 800,
+                fontSize: "0.85rem",
+                textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+              }}
+            >
+              {label}
+            </span>
+          ))}
         </div>
 
         {/* Slider with result label */}
-        <div className="relative mt-8">
+        <div className="relative mt-2">
           {/* Result label positioned where the dice landed */}
           {lastResult !== null && (
             <div
