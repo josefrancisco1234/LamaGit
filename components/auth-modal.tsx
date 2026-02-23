@@ -120,6 +120,25 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     }
 
     setLoading(true)
+
+    // Check username uniqueness before signing up
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      const checkRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?username=ilike.${encodeURIComponent(username)}&select=id`,
+        { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
+      )
+      if (checkRes.ok) {
+        const existing = await checkRes.json()
+        if (existing?.length > 0) {
+          setLoading(false)
+          setError("Ese nombre de usuario ya esta en uso. Elige otro.")
+          return
+        }
+      }
+    } catch (e) { /* continue if check fails */ }
+
     const { error, userId } = await signUpWithId(email, password, username)
     setLoading(false)
 

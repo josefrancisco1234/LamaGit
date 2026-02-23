@@ -97,7 +97,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
                 </h3>
                 <p className="text-white/80 text-sm leading-snug">
                   Comparte tu codigo <strong className="text-yellow-300">"{referralCode}"</strong> y gana{" "}
-                  <strong className="text-yellow-300">1%</strong> de cada apuesta que pierdan tus referidos.
+                  <strong className="text-yellow-300">1%</strong> por cada partida que jueguen tus referidos.
                 </p>
               </div>
 
@@ -123,7 +123,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
               </div>
               <div className="bg-secondary rounded-lg p-3 space-y-1">
                 <p className="text-lg font-bold text-success">1%</p>
-                <p>Ganas de sus pérdidas</p>
+                <p>Ganas por partida</p>
               </div>
             </div>
 
@@ -235,7 +235,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
                           className="flex items-center justify-between px-3 py-2 bg-secondary rounded-lg text-sm"
                         >
                           <span className="text-muted-foreground text-xs">
-                            Apuesta perdida: S/ {formatBalance(e.bet_amount)}
+                            Partida jugada: S/ {formatBalance(e.bet_amount)}
                           </span>
                           <span className="text-success font-bold">
                             +S/ {formatBalance(e.commission_amount)}
