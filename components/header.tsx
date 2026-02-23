@@ -42,7 +42,7 @@ export function Header() {
       </div>
 
       {/* Center - Wallet Widget, centered over content area */}
-      <div className="flex-1 flex justify-center translate-x-16">
+      <div className="flex-1 flex justify-center translate-x-32">
         {loading ? (
           <div className="animate-pulse bg-muted h-10 w-48 rounded-2xl" />
         ) : (
