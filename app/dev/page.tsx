@@ -15,6 +15,7 @@ import {
   Eye,
   Settings,
   Clock,
+  History,
 } from "lucide-react"
 
 const DEV_PASSWORD = "troxomoroxo"
@@ -26,6 +27,29 @@ interface UserData {
   balance: number
   created_at: string
   banned?: boolean
+}
+
+interface GameRecord {
+  id: string
+  result: number
+  threshold: number
+  bet_amount: number
+  won: boolean
+  payout: number
+  created_at: string
+}
+
+interface GameHistoryData {
+  games: GameRecord[]
+  stats: {
+    totalGames: number
+    wins: number
+    losses: number
+    winRate: string
+    totalBet: number
+    totalPayout: number
+    net: number
+  }
 }
 
 interface RechargeRequest {
@@ -52,6 +76,8 @@ export default function DevPage() {
   const [actionLog, setActionLog] = React.useState<string[]>([])
   const [recharges, setRecharges] = React.useState<RechargeRequest[]>([])
   const [loadingRecharges, setLoadingRecharges] = React.useState(false)
+  const [gameHistory, setGameHistory] = React.useState<GameHistoryData | null>(null)
+  const [loadingHistory, setLoadingHistory] = React.useState(false)
 
   // Guardar password para usarla en las llamadas API
   const passwordRef = React.useRef("")
@@ -271,6 +297,25 @@ export default function DevPage() {
       addLog(`Error: ${error}`)
     }
   }
+
+  const fetchGameHistory = async (userId: string) => {
+    setLoadingHistory(true)
+    setGameHistory(null)
+    try {
+      const res = await fetch(`/api/admin/game-history?userId=${userId}`, { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        setGameHistory(data)
+      }
+    } catch {}
+    setLoadingHistory(false)
+  }
+
+  // Cargar historial al seleccionar usuario
+  React.useEffect(() => {
+    if (selectedUser) fetchGameHistory(selectedUser.id)
+    else setGameHistory(null)
+  }, [selectedUser?.id])
 
   const pendingRecharges = recharges.filter(r => r.status === 'pending')
 
@@ -596,6 +641,96 @@ export default function DevPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Game History */}
+            {selectedUser && (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <History className="w-5 h-5 text-primary" />
+                    Historial: {selectedUser.username}
+                  </h2>
+                  <button
+                    onClick={() => fetchGameHistory(selectedUser.id)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingHistory ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {loadingHistory ? (
+                  <p className="text-muted-foreground text-sm text-center py-4">Cargando...</p>
+                ) : gameHistory ? (
+                  <>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Partidas</p>
+                        <p className="font-bold text-sm">{gameHistory.stats.totalGames}</p>
+                      </div>
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Win Rate</p>
+                        <p className="font-bold text-sm text-primary">{gameHistory.stats.winRate}%</p>
+                      </div>
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Ganadas / Perdidas</p>
+                        <p className="font-bold text-sm">
+                          <span className="text-success">{gameHistory.stats.wins}</span>
+                          {" / "}
+                          <span className="text-destructive">{gameHistory.stats.losses}</span>
+                        </p>
+                      </div>
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Neto</p>
+                        <p className={`font-bold text-sm ${gameHistory.stats.net >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {gameHistory.stats.net >= 0 ? '+' : ''}S/ {gameHistory.stats.net.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Dinero apostado</p>
+                        <p className="font-bold text-sm">S/ {gameHistory.stats.totalBet.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-secondary rounded-lg p-2">
+                        <p className="text-muted-foreground">Dinero ganado</p>
+                        <p className="font-bold text-sm text-success">S/ {gameHistory.stats.totalPayout.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    {/* Last 20 games */}
+                    {gameHistory.games.length > 0 ? (
+                      <div className="space-y-1 max-h-64 overflow-y-auto">
+                        <p className="text-xs text-muted-foreground mb-2">Ultimas {gameHistory.games.length} partidas</p>
+                        {gameHistory.games.map((g) => (
+                          <div
+                            key={g.id}
+                            className={`flex items-center justify-between px-2 py-1.5 rounded text-xs border ${
+                              g.won
+                                ? 'bg-success/10 border-success/20'
+                                : 'bg-destructive/10 border-destructive/20'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold w-12 ${g.won ? 'text-success' : 'text-destructive'}`}>
+                                {g.won ? 'GANO' : 'PERDIO'}
+                              </span>
+                              <span className="font-mono text-muted-foreground">{Number(g.result).toFixed(2)} / {g.threshold}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-right">
+                              <span className="text-muted-foreground">S/ {Number(g.bet_amount).toFixed(2)}</span>
+                              {g.won && <span className="text-success font-bold">+S/ {Number(g.payout).toFixed(2)}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs text-center py-2">Sin partidas registradas</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-sm text-center py-4">Error cargando historial</p>
+                )}
+              </div>
+            )}
 
             {/* Action Log */}
             <div className="bg-card border border-border rounded-xl p-4">

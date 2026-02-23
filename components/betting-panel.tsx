@@ -29,6 +29,7 @@ import {
 } from "@/lib/utils"
 import { walletAdd } from "@/lib/wallet"
 import { processAffiliateCommission } from "@/lib/affiliates"
+import { saveGameResult } from "@/lib/game-history"
 import { useToast } from "@/hooks/use-toast"
 import { Dice6, Minus, Plus } from "lucide-react"
 
@@ -184,11 +185,13 @@ export function BettingPanel() {
         } catch (error) {
           console.error("Error crediting winnings:", error)
         }
+        saveGameResult({ userId: userRef.current.id, result: finalNumber, threshold: currentThreshold, betAmount: currentBet, won: true, payout })
       } else if (!demo && userRef.current) {
         // Solo refrescar wallet para mostrar el balance actualizado
         await refreshWallet()
         // Procesar comision de afiliado (1% al referidor si existe)
         processAffiliateCommission(userRef.current.id, currentBet)
+        saveGameResult({ userId: userRef.current.id, result: finalNumber, threshold: currentThreshold, betAmount: currentBet, won: false, payout: 0 })
       }
 
       // Agregar al historial (maximo 100 items)
