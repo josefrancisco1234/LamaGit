@@ -471,7 +471,7 @@ export function BettingPanel() {
           </div>
 
           {/* ================================================================= */}
-          {/* DISPLAY DE PROBABILIDAD - Slider + multiplicador + historial */}
+          {/* DISPLAY DE PROBABILIDAD - Slider + multiplicador (sin historial) */}
           {/* ================================================================= */}
           <ProbabilityDisplay
             threshold={threshold}
@@ -479,7 +479,35 @@ export function BettingPanel() {
             bet={bet}
             disabled={rolling}
             history={history}
+            hideHistory
           />
+
+          {/* Mensaje de error */}
+          {uiError && (
+            <p className="text-sm text-destructive text-center">{uiError}</p>
+          )}
+
+          {/* ================================================================= */}
+          {/* BOTON PRINCIPAL - TIRAR DADO */}
+          {/* ================================================================= */}
+          <Button
+            onClick={handleRoll}
+            disabled={rolling}
+            size="xl"
+            className="w-full h-14 text-lg font-bold bg-accent hover:bg-accent/90 text-white"
+          >
+            {rolling ? (
+              <>
+                <Dice6 className="w-6 h-6 mr-2 dice-spinning" />
+                Tirando...
+              </>
+            ) : (
+              <>
+                <Dice6 className="w-6 h-6 mr-2" />
+                Tirar Dado
+              </>
+            )}
+          </Button>
 
           {/* ================================================================= */}
           {/* SECCION DE APUESTA - Input + botones de ajuste */}
@@ -570,32 +598,31 @@ export function BettingPanel() {
             </div>
           </div>
 
-          {/* Mensaje de error */}
-          {uiError && (
-            <p className="text-sm text-destructive text-center">{uiError}</p>
+          {/* ================================================================= */}
+          {/* HISTORIAL - Ultimas tiradas */}
+          {/* ================================================================= */}
+          {history.length > 0 && (
+            <div className="bg-card-gradient rounded-lg p-4 border border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm text-muted-foreground">Ultimas tiradas</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {history.slice(0, 30).map((item) => (
+                  <span
+                    key={item.timestamp}
+                    className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+                      item.won
+                        ? "bg-success/20 text-success border-success/30"
+                        : "bg-destructive/20 text-destructive border-destructive/30"
+                    }`}
+                    title={`Umbral: ${item.threshold.toFixed(2)}`}
+                  >
+                    {item.result.toFixed(2)}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
-
-          {/* ================================================================= */}
-          {/* BOTON PRINCIPAL - TIRAR DADO */}
-          {/* ================================================================= */}
-          <Button
-            onClick={handleRoll}
-            disabled={rolling}
-            size="xl"
-            className="w-full h-14 text-lg font-bold bg-accent hover:bg-accent/90 text-white"
-          >
-            {rolling ? (
-              <>
-                <Dice6 className="w-6 h-6 mr-2 dice-spinning" />
-                Tirando...
-              </>
-            ) : (
-              <>
-                <Dice6 className="w-6 h-6 mr-2" />
-                Tirar Dado
-              </>
-            )}
-          </Button>
         </TabsContent>
       </Tabs>
 

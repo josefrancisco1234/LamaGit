@@ -27,6 +27,7 @@ interface ProbabilityDisplayProps {
   bet: number
   disabled?: boolean
   history: HistoryItem[]
+  hideHistory?: boolean
 }
 
 export function ProbabilityDisplay({
@@ -35,6 +36,7 @@ export function ProbabilityDisplay({
   bet,
   disabled = false,
   history,
+  hideHistory = false,
 }: ProbabilityDisplayProps) {
   const multiplier = calculateMultiplier(threshold)
   const potentialPayout = bet * multiplier
@@ -162,7 +164,7 @@ export function ProbabilityDisplay({
       </div>
 
       {/* History */}
-      {history.length > 0 && (
+      {!hideHistory && history.length > 0 && (
         <div className="bg-card-gradient rounded-lg p-4 border border-border">
           <div className="flex items-center gap-2 mb-3">
             <History className="w-4 h-4 text-muted-foreground" />
