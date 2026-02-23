@@ -25,9 +25,9 @@ export function Header() {
   }
 
   return (
-    <header className="relative h-[72px] border-b border-border bg-header-gradient flex items-center justify-between px-4 lg:px-6">
-      {/* Logo */}
-      <div className="flex items-center gap-3">
+    <header className="h-[72px] border-b border-border bg-header-gradient flex items-center px-4 lg:px-6">
+      {/* Logo - same width as sidebar so center aligns with content */}
+      <div className="flex items-center gap-3 lg:w-[270px]">
         <Image
           src="/logo.png"
           alt="LamaBet"
@@ -41,8 +41,8 @@ export function Header() {
         </span>
       </div>
 
-      {/* Center - Wallet Widget */}
-      <div className="absolute left-1/2 -translate-x-1/2">
+      {/* Center - Wallet Widget, centered over content area */}
+      <div className="flex-1 flex justify-center">
         {loading ? (
           <div className="animate-pulse bg-muted h-10 w-48 rounded-2xl" />
         ) : (
@@ -50,8 +50,8 @@ export function Header() {
         )}
       </div>
 
-      {/* Right side */}
-      <div className="flex items-center gap-2 sm:gap-4">
+      {/* Right side - same width as logo for symmetry */}
+      <div className="flex items-center justify-end gap-2 lg:w-[270px]">
         {!loading && !user && (
           <Button onClick={() => setShowAuthModal(true)} className="font-semibold">
             Iniciar Sesion
