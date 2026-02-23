@@ -479,7 +479,6 @@ export function BettingPanel() {
             bet={bet}
             disabled={rolling}
             history={history}
-            hideHistory
           />
 
           {/* Mensaje de error */}
@@ -598,31 +597,6 @@ export function BettingPanel() {
             </div>
           </div>
 
-          {/* ================================================================= */}
-          {/* HISTORIAL - Ultimas tiradas */}
-          {/* ================================================================= */}
-          {history.length > 0 && (
-            <div className="bg-card-gradient rounded-lg p-4 border border-border">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm text-muted-foreground">Ultimas tiradas</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {history.slice(0, 30).map((item) => (
-                  <span
-                    key={item.timestamp}
-                    className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
-                      item.won
-                        ? "bg-success/20 text-success border-success/30"
-                        : "bg-destructive/20 text-destructive border-destructive/30"
-                    }`}
-                    title={`Umbral: ${item.threshold.toFixed(2)}`}
-                  >
-                    {item.result.toFixed(2)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </TabsContent>
       </Tabs>
 

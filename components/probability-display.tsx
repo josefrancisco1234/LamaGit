@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { Slider } from "@/components/ui/slider"
-import { Badge } from "@/components/ui/badge"
 import {
   THRESHOLD_VALUES,
   calculateMultiplier,
@@ -10,7 +9,7 @@ import {
   thresholdToPosition,
   formatBalance,
 } from "@/lib/utils"
-import { Percent, TrendingUp, History } from "lucide-react"
+import { Percent, TrendingUp } from "lucide-react"
 
 interface HistoryItem {
   result: number
@@ -27,7 +26,6 @@ interface ProbabilityDisplayProps {
   bet: number
   disabled?: boolean
   history: HistoryItem[]
-  hideHistory?: boolean
 }
 
 export function ProbabilityDisplay({
@@ -36,7 +34,6 @@ export function ProbabilityDisplay({
   bet,
   disabled = false,
   history,
-  hideHistory = false,
 }: ProbabilityDisplayProps) {
   const multiplier = calculateMultiplier(threshold)
   const potentialPayout = bet * multiplier
@@ -95,11 +92,27 @@ export function ProbabilityDisplay({
 
       {/* Threshold Slider */}
       <div className="space-y-4 bg-card-gradient rounded-lg p-4 border border-border">
-        <div className="flex items-center justify-between">
-          <label className="text-sm text-muted-foreground">
-            Umbral de Victoria
-          </label>
-          <span className="text-lg font-bold text-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <label className="text-sm text-muted-foreground whitespace-nowrap">
+              Umbral de Victoria
+            </label>
+            {/* Mini history pills — max 5, newest first, fade-in on mount */}
+            {history.slice(0, 5).map((item) => (
+              <span
+                key={item.timestamp}
+                className={`history-mini-pill text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${
+                  item.won
+                    ? "bg-success/20 text-success border-success/30"
+                    : "bg-destructive/20 text-destructive border-destructive/30"
+                }`}
+                title={`Umbral: ${item.threshold.toFixed(2)}`}
+              >
+                {item.result.toFixed(2)}
+              </span>
+            ))}
+          </div>
+          <span className="text-lg font-bold text-foreground shrink-0">
             {threshold.toFixed(2)}
           </span>
         </div>
@@ -163,30 +176,6 @@ export function ProbabilityDisplay({
         </p>
       </div>
 
-      {/* History */}
-      {!hideHistory && history.length > 0 && (
-        <div className="bg-card-gradient rounded-lg p-4 border border-border">
-          <div className="flex items-center gap-2 mb-3">
-            <History className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              Ultimas tiradas
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {history.slice(0, 30).map((item, index) => (
-              <Badge
-                key={item.timestamp}
-                variant={item.won ? "success" : "destructive"}
-                className="text-xs font-mono cursor-default"
-                title={`Umbral: ${item.threshold.toFixed(2)}`}
-              >
-                {item.result.toFixed(2)}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -192,6 +192,15 @@ body {
   100% { transform: rotateX(30deg) rotateY(45deg) translateX(0); }
 }
 
+/* Mini history pill fade-in animation */
+@keyframes history-pill-in {
+  from { opacity: 0; transform: scale(0.6) translateX(-6px); }
+  to   { opacity: 1; transform: scale(1) translateX(0); }
+}
+.history-mini-pill {
+  animation: history-pill-in 0.25s ease forwards;
+}
+
 .bp-dice-scene {
   perspective: 400px;
   width: 100px;
