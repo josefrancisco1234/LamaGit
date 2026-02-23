@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { AuthModal } from "@/components/auth-modal"
+import { AffiliatesModal } from "@/components/affiliates-modal"
 import { cn } from "@/lib/utils"
 import {
   Users,
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
 export function LeftSidebar() {
   const { user } = useAuth()
   const [showAuthModal, setShowAuthModal] = React.useState(false)
+  const [showAffiliates, setShowAffiliates] = React.useState(false)
 
   return (
     <aside className="w-[270px] border-r border-border bg-sidebar-gradient flex flex-col py-4 hidden lg:flex">
@@ -61,6 +63,21 @@ export function LeftSidebar() {
                   {buttonContent}
                 </Button>
               </Link>
+            )
+          }
+
+          if (item.label === "Afiliados") {
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                onClick={() => setShowAffiliates(true)}
+              >
+                {buttonContent}
+              </Button>
             )
           }
 
@@ -102,6 +119,7 @@ export function LeftSidebar() {
       </div>
 
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
+      <AffiliatesModal open={showAffiliates} onOpenChange={setShowAffiliates} />
     </aside>
   )
 }

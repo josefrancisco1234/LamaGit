@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { useToast } from "@/hooks/use-toast"
+import { setReferredBy } from "@/lib/affiliates"
 import { Loader2 } from "lucide-react"
 
 interface AuthModalProps {
@@ -24,16 +25,35 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [username, setUsername] = React.useState("")
+  const [referralCode, setReferralCode] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState("")
 
   const { signIn, signUp } = useAuth()
   const { toast } = useToast()
 
+  // Wrapper that also returns userId for referral linking
+  const signUpWithId = async (email: string, password: string, username: string) => {
+    const result = await signUp(email, password, username)
+    if (result.error) return { error: result.error, userId: null }
+    // Get userId from localStorage after signup
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
+      const stored = localStorage.getItem(storageKey)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        return { error: null, userId: parsed?.user?.id ?? null }
+      }
+    } catch (e) {}
+    return { error: null, userId: null }
+  }
+
   const resetForm = () => {
     setEmail("")
     setPassword("")
     setUsername("")
+    setReferralCode("")
     setError("")
   }
 
@@ -100,7 +120,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     }
 
     setLoading(true)
-    const { error } = await signUp(email, password, username)
+    const { error, userId } = await signUpWithId(email, password, username)
     setLoading(false)
 
     if (error) {
@@ -111,6 +131,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         variant: "destructive",
       })
     } else {
+      // Save referral code if provided
+      if (referralCode.trim() && userId) {
+        await setReferredBy(userId, referralCode.trim())
+      }
       toast({
         title: "Cuenta creada!",
         description: "Revisa tu email para confirmar tu cuenta",
@@ -219,6 +243,20 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   placeholder="Minimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="bg-secondary border-border"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  Codigo de referido <span className="text-xs opacity-60">(opcional)</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Ej: juanperez"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
                   className="bg-secondary border-border"
                   disabled={loading}
                 />

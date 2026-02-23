@@ -28,6 +28,7 @@ import {
   formatBalance,
 } from "@/lib/utils"
 import { walletAdd } from "@/lib/wallet"
+import { processAffiliateCommission } from "@/lib/affiliates"
 import { useToast } from "@/hooks/use-toast"
 import { Dice6, Minus, Plus } from "lucide-react"
 
@@ -186,6 +187,8 @@ export function BettingPanel() {
       } else if (!demo && userRef.current) {
         // Solo refrescar wallet para mostrar el balance actualizado
         await refreshWallet()
+        // Procesar comision de afiliado (1% al referidor si existe)
+        processAffiliateCommission(userRef.current.id, currentBet)
       }
 
       // Agregar al historial (maximo 100 items)
