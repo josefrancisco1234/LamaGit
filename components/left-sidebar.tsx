@@ -7,7 +7,6 @@ import { useAuth } from "@/components/auth-provider"
 import { AuthModal } from "@/components/auth-modal"
 import { cn } from "@/lib/utils"
 import {
-  Gift,
   Users,
   Crown,
   BookOpen,
@@ -25,7 +24,6 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: Gift, label: "Promociones" },
   { icon: Users, label: "Afiliados" },
   { icon: Crown, label: "Club VIP" },
   { icon: BookOpen, label: "Blog" },
