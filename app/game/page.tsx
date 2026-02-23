@@ -3,6 +3,7 @@
 import { Header } from "@/components/header"
 import { LeftSidebar } from "@/components/left-sidebar"
 import { BettingPanel } from "@/components/betting-panel"
+import { ReferralBanner } from "@/components/referral-banner"
 
 export default function GamePage() {
   return (
@@ -18,6 +19,9 @@ export default function GamePage() {
         {/* Game Area */}
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           <div className="max-w-2xl mx-auto">
+            {/* Referral banner (visible solo si llegan via ?ref=xxx) */}
+            <ReferralBanner />
+
             {/* Title */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-foreground">

@@ -217,7 +217,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
                     <p className="text-lg font-bold">Nivel 1</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Comision por perdida</p>
+                    <p className="text-xs text-muted-foreground">Comision por partida</p>
                     <p className="text-2xl font-black text-primary">1%</p>
                   </div>
                 </div>

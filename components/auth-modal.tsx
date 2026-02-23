@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
 import { useToast } from "@/hooks/use-toast"
 import { setReferredBy } from "@/lib/affiliates"
+import { getStoredReferralCode, clearStoredReferralCode } from "@/components/referral-banner"
 import { Loader2 } from "lucide-react"
 
 interface AuthModalProps {
@@ -31,6 +32,14 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
   const { signIn, signUp } = useAuth()
   const { toast } = useToast()
+
+  // Auto-fill referral code from URL (?ref=xxx) if stored
+  React.useEffect(() => {
+    if (open) {
+      const stored = getStoredReferralCode()
+      if (stored) setReferralCode(stored)
+    }
+  }, [open])
 
   // Wrapper that also returns userId for referral linking
   const signUpWithId = async (email: string, password: string, username: string) => {
@@ -153,6 +162,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       // Save referral code if provided
       if (referralCode.trim() && userId) {
         await setReferredBy(userId, referralCode.trim())
+        clearStoredReferralCode()
       }
       toast({
         title: "Cuenta creada!",
