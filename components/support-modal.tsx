@@ -15,7 +15,7 @@ interface SupportModalProps {
 
 const WA_NUMBER = "17869392784"
 const WA_DISPLAY = "+1 (786) 939-2784"
-const WA_URL = `https://wa.me/${WA_NUMBER}?text=Hola%2C%20necesito%20ayuda%20con%20LamaBet`
+const WA_URL = `https://wa.me/${WA_NUMBER}?text=Hola%2C%20necesito%20ayuda%20con%20LamaDice`
 
 export function SupportModal({ open, onOpenChange }: SupportModalProps) {
   return (
@@ -142,7 +142,7 @@ export function SupportModal({ open, onOpenChange }: SupportModalProps) {
                     <Phone className="w-4 h-4" style={{ color: "#25d366" }} />
                   </div>
                   <div>
-                    <p className="text-xs" style={{ color: "#64748b" }}>Número oficial de LamaBet</p>
+                    <p className="text-xs" style={{ color: "#64748b" }}>Número oficial de LamaDice</p>
                     <p className="font-bold text-sm" style={{ color: "#e2e8f0" }}>{WA_DISPLAY}</p>
                   </div>
                 </div>

@@ -15,7 +15,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = React.useState<Theme>("dark")
 
   React.useEffect(() => {
-    // LamaBet always uses dark theme
+    // LamaDice always uses dark theme
     document.documentElement.classList.add("dark")
     document.documentElement.style.colorScheme = "dark"
   }, [])

@@ -175,7 +175,7 @@ export function LeftSidebar() {
       {/* Footer */}
       <div className="px-4 pt-4 mt-4 border-t border-border">
         <p className="text-xs text-muted-foreground text-center">
-          LamaBet v1.0.0
+          LamaDice v1.0.0
         </p>
       </div>
 

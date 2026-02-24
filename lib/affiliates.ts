@@ -1,5 +1,5 @@
 // =============================================================================
-// AFFILIATES.TS - Sistema de Referidos LamaBet
+// AFFILIATES.TS - Sistema de Referidos LamaDice
 // =============================================================================
 // Logica: cuando un jugador referido pierde una apuesta, el referidor
 // recibe automaticamente 1% del monto perdido via trigger de Supabase.

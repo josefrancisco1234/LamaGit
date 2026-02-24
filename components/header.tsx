@@ -49,7 +49,7 @@ export function Header() {
       <div className="flex items-center gap-3 lg:w-[270px]">
         <Image
           src="/logo.png"
-          alt="LamaBet"
+          alt="LamaDice"
           width={44}
           height={44}
           className="object-contain"
@@ -57,7 +57,7 @@ export function Header() {
         />
         <div className="hidden sm:flex flex-col">
           <span className="text-xl font-bold text-primary leading-tight">
-            LamaBet
+            LamaDice
           </span>
           {/* Live global stats */}
           <div className="flex items-center gap-2 mt-0.5">

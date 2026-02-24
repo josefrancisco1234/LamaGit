@@ -292,7 +292,7 @@ export function LiveChat() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
                 </span>
-                <span className="text-xs font-bold" style={{ color: "#f0b616" }}>Chat LamaBet</span>
+                <span className="text-xs font-bold" style={{ color: "#f0b616" }}>Chat LamaDice</span>
                 {messages.length > 0 && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
                     <Users className="w-2.5 h-2.5 inline mr-0.5" />

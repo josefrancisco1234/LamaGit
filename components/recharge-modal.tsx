@@ -610,7 +610,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
                         ].map((transform, i) => (
                           <div key={i} className="rm-dice-face" style={{ transform }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="/logo.png" alt="LamaBet" />
+                            <img src="/logo.png" alt="LamaDice" />
                           </div>
                         ))}
                       </div>

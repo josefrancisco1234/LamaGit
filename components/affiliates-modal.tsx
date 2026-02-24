@@ -37,7 +37,7 @@ export function AffiliatesModal({ open, onOpenChange }: AffiliatesModalProps) {
   const referralUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/game?ref=${encodeURIComponent(referralCode)}`
-      : `https://lamabet.com/game?ref=${encodeURIComponent(referralCode)}`
+      : `https://lamadice.com/game?ref=${encodeURIComponent(referralCode)}`
 
   // Load stats when modal opens
   React.useEffect(() => {

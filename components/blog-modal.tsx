@@ -55,7 +55,7 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#0f0e1a] border-border max-w-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <DialogHeader className="sr-only">
-          <DialogTitle>Blog LamaBet</DialogTitle>
+          <DialogTitle>Blog LamaDice</DialogTitle>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1">
@@ -86,7 +86,7 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
             </span>
 
             <h1 className="text-2xl font-black text-white leading-tight mb-3">
-              LamaBet abre sus puertas oficialmente
+              LamaDice abre sus puertas oficialmente
             </h1>
 
             {/* Date */}
@@ -108,18 +108,18 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
             <div className="bg-[#1a1535] rounded-xl p-5 border border-purple-800/30">
               <p className="text-sm text-gray-300 leading-relaxed">
                 Hoy, <span className="text-white font-bold">25 de febrero de 2026</span>, marca un hito histórico:
-                {" "}<span className="text-purple-400 font-bold">LamaBet</span> abre sus puertas al público de forma oficial.
+                {" "}<span className="text-purple-400 font-bold">LamaDice</span> abre sus puertas al público de forma oficial.
                 Lo que comenzó como un proyecto bajo el nombre <span className="text-gray-200 font-semibold">PeruBet</span> ha
                 evolucionado hasta convertirse en una plataforma de juego de clase mundial, lista para competir
                 con los mejores operadores del sector.
               </p>
             </div>
 
-            {/* De PeruBet a LamaBet */}
+            {/* De PeruBet a LamaDice */}
             <div>
               <h2 className="text-lg font-black text-white mb-3 flex items-center gap-2">
                 <Star className="w-5 h-5 text-purple-400" />
-                De PeruBet a LamaBet: el camino hasta aquí
+                De PeruBet a LamaDice: el camino hasta aquí
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed mb-3">
                 El proyecto nació con una visión simple pero poderosa: ofrecer una experiencia de juego
@@ -128,7 +128,7 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
                 el sistema de afiliados.
               </p>
               <p className="text-sm text-gray-400 leading-relaxed">
-                El cambio de nombre a <span className="text-purple-400 font-semibold">LamaBet</span> representa
+                El cambio de nombre a <span className="text-purple-400 font-semibold">LamaDice</span> representa
                 la madurez del proyecto y su ambición de trascender fronteras. Un nombre más fuerte, una
                 identidad más clara y una propuesta de valor que no tiene comparación en la región.
               </p>
@@ -138,7 +138,7 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
             <div>
               <h2 className="text-lg font-black text-white mb-3 flex items-center gap-2">
                 <Flame className="w-5 h-5 text-orange-400" />
-                ¿Qué hace especial a LamaBet?
+                ¿Qué hace especial a LamaDice?
               </h2>
               <div className="space-y-3">
                 {HIGHLIGHTS.map((h) => (
@@ -160,14 +160,14 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
                 El futuro que construimos juntos
               </h2>
               <p className="text-sm text-gray-300 leading-relaxed">
-                En LamaBet creemos firmemente que la fama y el reconocimiento llegan cuando haces
+                En LamaDice creemos firmemente que la fama y el reconocimiento llegan cuando haces
                 las cosas bien. Nos regulamos bajo los más altos estándares internacionales, operamos
                 con total transparencia y ponemos al jugador en el centro de todo lo que hacemos.
                 El camino apenas comienza, y el crecimiento que alcanzaremos será el resultado de
                 la confianza que deposite en nosotros cada uno de nuestros jugadores.
               </p>
               <p className="text-sm text-gray-300 leading-relaxed mt-3">
-                <span className="text-purple-300 font-semibold">Bienvenido a LamaBet.</span>{" "}
+                <span className="text-purple-300 font-semibold">Bienvenido a LamaDice.</span>{" "}
                 Bienvenido al futuro del entretenimiento online en Latinoamérica.
               </p>
             </div>
@@ -183,12 +183,12 @@ export function BlogModal({ open, onOpenChange }: BlogModalProps) {
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Información de licencia</p>
             </div>
             <p className="text-[11px] text-gray-600 leading-relaxed">
-              LamaBet.com es una marca comercial de Raw Entertainment B.V, Nº de registro 157205,
+              LamaDice.com es una marca comercial de Raw Entertainment B.V, Nº de registro 157205,
               con domicilio social en Korporaalweg 10, Curaçao, autorizada a realizar operaciones
               de juego en línea por el Gobierno de Curaçao con la licencia OGL/2024/687/0427.
               Raw Entertainment Ltd, Reg No HE421735, con domicilio social en Voukourestiou, 25,
               Neptune House, 1st Floor, Flat/Office11, Zakaki, 3045, Limassol, Chipre, es una
-              Empresa del grupo LamaBet que actúa como agente de pagos y operaciones en nombre
+              Empresa del grupo LamaDice que actúa como agente de pagos y operaciones en nombre
               de Raw Entertainment B.V.
             </p>
             <p className="text-[11px] text-gray-600">

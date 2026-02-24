@@ -71,7 +71,7 @@ const CRITERIA = [
     icon: Activity,
     color: "text-yellow-400",
     title: "Actividad",
-    desc: "Un compromiso constante y responsable con LamaBet aumenta las probabilidades de ser reconocido como jugador valioso.",
+    desc: "Un compromiso constante y responsable con LamaDice aumenta las probabilidades de ser reconocido como jugador valioso.",
   },
   {
     icon: Layers,
@@ -83,11 +83,11 @@ const CRITERIA = [
 
 const FAQS = [
   {
-    q: "Criterios de afiliación y servicios exclusivos del Club LamaBet VIP",
-    a: "Para mantener la exclusividad y un nivel excepcional de servicios, el Club LamaBet VIP es estrictamente solo por invitación. Los jugadores que cumplan con nuestros criterios serán contactados por un miembro dedicado de nuestro equipo VIP.",
+    q: "Criterios de afiliación y servicios exclusivos del Club LamaDice VIP",
+    a: "Para mantener la exclusividad y un nivel excepcional de servicios, el Club LamaDice VIP es estrictamente solo por invitación. Los jugadores que cumplan con nuestros criterios serán contactados por un miembro dedicado de nuestro equipo VIP.",
   },
   {
-    q: "¿Qué criterios específicos se deben cumplir para ser miembro del programa LamaBet VIP?",
+    q: "¿Qué criterios específicos se deben cumplir para ser miembro del programa LamaDice VIP?",
     a: "Se tiene en cuenta toda la actividad de juego, incluyendo la frecuencia, el volumen apostado y el tiempo en la plataforma. Sobre todo, valoramos la fidelidad y el juego responsable.",
   },
   {
@@ -95,8 +95,8 @@ const FAQS = [
     a: "Puede que te preguntemos cuáles son tus preferencias en materia de hospitalidad o si tienes algún pasatiempo o hobby, pero solo porque nuestro equipo VIP se esfuerza al máximo para recompensarte.",
   },
   {
-    q: "¿Qué distingue al Club LamaBet VIP de los demás y lo convierte en una opción superior?",
-    a: "Nos comprometemos a proporcionar la mejor experiencia posible a nuestros clientes VIP. Ofrecemos un equipo VIP dedicado, promociones exclusivas y un trato personalizado que no encontrarás en ningún otro sitio.\n\nLa honestidad, la atención al detalle y la integridad son las señas de identidad del programa LamaBet VIP.\n\nLos miembros de nuestro club VIP reciben un servicio rápido y excepcional que no tiene comparación. Estamos seguros de que, una vez que te conviertas en miembro de nuestro club VIP, no querrás dejarlo.",
+    q: "¿Qué distingue al Club LamaDice VIP de los demás y lo convierte en una opción superior?",
+    a: "Nos comprometemos a proporcionar la mejor experiencia posible a nuestros clientes VIP. Ofrecemos un equipo VIP dedicado, promociones exclusivas y un trato personalizado que no encontrarás en ningún otro sitio.\n\nLa honestidad, la atención al detalle y la integridad son las señas de identidad del programa LamaDice VIP.\n\nLos miembros de nuestro club VIP reciben un servicio rápido y excepcional que no tiene comparación. Estamos seguros de que, una vez que te conviertas en miembro de nuestro club VIP, no querrás dejarlo.",
   },
 ]
 
@@ -107,7 +107,7 @@ export function VipModal({ open, onOpenChange }: VipModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#0f0e1a] border-border max-w-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         <DialogHeader className="sr-only">
-          <DialogTitle>Club VIP LamaBet</DialogTitle>
+          <DialogTitle>Club VIP LamaDice</DialogTitle>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1">
@@ -148,7 +148,7 @@ export function VipModal({ open, onOpenChange }: VipModalProps) {
                 Explorar <span className="text-yellow-400">Ventajas VIP</span>
               </h2>
               <p className="text-xs text-gray-400 mt-1">
-                ¡Disfruta de un servicio excepcional y de increíbles recompensas con el Club LamaBet VIP!
+                ¡Disfruta de un servicio excepcional y de increíbles recompensas con el Club LamaDice VIP!
               </p>
             </div>
 

@@ -47,8 +47,8 @@ const FAQS = [
     a: "El modo Demo (apuesta S/ 0) te permite jugar exactamente igual que en el modo real, pero sin dinero real. Úsalo para aprender cómo funciona el juego sin ningún riesgo financiero.",
   },
   {
-    q: "¿Se puede ganar dinero en LamaBet?",
-    a: "Sí, es completamente posible ganar dinero en LamaBet y muchos jugadores lo hacen. Sin embargo, al tener un edge del 1% a favor de la casa, es inevitable que a muy largo plazo la casa recupere un porcentaje de lo apostado. Esto no significa que no puedas irte con ganancias: una buena racha, una apuesta bien calculada o retirarte en el momento correcto son estrategias totalmente válidas. Juega con cabeza y disfruta el proceso.",
+    q: "¿Se puede ganar dinero en LamaDice?",
+    a: "Sí, es completamente posible ganar dinero en LamaDice y muchos jugadores lo hacen. Sin embargo, al tener un edge del 1% a favor de la casa, es inevitable que a muy largo plazo la casa recupere un porcentaje de lo apostado. Esto no significa que no puedas irte con ganancias: una buena racha, una apuesta bien calculada o retirarte en el momento correcto son estrategias totalmente válidas. Juega con cabeza y disfruta el proceso.",
   },
 ]
 
@@ -96,7 +96,7 @@ export function ResponsibleGamingModal({ open, onOpenChange }: ResponsibleGaming
               Entiende el juego antes de apostar
             </h1>
             <p className="text-sm text-gray-400 max-w-md leading-relaxed">
-              En LamaBet nos importa que juegues de forma informada y segura.
+              En LamaDice nos importa que juegues de forma informada y segura.
               Aquí te explicamos exactamente cómo funciona nuestro juego de dados.
             </p>
           </div>
@@ -331,7 +331,7 @@ export function ResponsibleGamingModal({ open, onOpenChange }: ResponsibleGaming
             style={{ background: "#080714" }}
           >
             <p className="text-xs text-gray-600">
-              LamaBet promueve el juego responsable. 18+ para jugar. Si tienes problemas con el juego,
+              LamaDice promueve el juego responsable. 18+ para jugar. Si tienes problemas con el juego,
               busca ayuda profesional.
             </p>
           </div>

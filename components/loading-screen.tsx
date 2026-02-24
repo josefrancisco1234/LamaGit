@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-interface LamaBetLoadingProps {
+interface LamaDiceLoadingProps {
   imageSrc?: string
   title?: string
   onComplete?: () => void
@@ -23,9 +23,9 @@ const FACES = [
 
 export function LoadingScreen({
   imageSrc = "/logo.png",
-  title = "LamaBet",
+  title = "LamaDice",
   onComplete,
-}: LamaBetLoadingProps) {
+}: LamaDiceLoadingProps) {
   const [progress, setProgress] = React.useState(0)
 
   // Incrementar progreso cada 300ms
@@ -151,7 +151,7 @@ export function LoadingScreen({
                   style={{ transform: face.transform }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageSrc} alt="LamaBet" />
+                  <img src={imageSrc} alt="LamaDice" />
                 </div>
               ))}
             </div>

@@ -216,7 +216,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <div className="w-full rounded-xl p-4 space-y-2 text-sm"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
               <p className="text-white/80">1. Abre tu correo electronico</p>
-              <p className="text-white/80">2. Busca el email de <strong>LamaBet</strong></p>
+              <p className="text-white/80">2. Busca el email de <strong>LamaDice</strong></p>
               <p className="text-white/80">3. Haz clic en el enlace de confirmacion</p>
               <p className="text-yellow-400/70 text-xs mt-2">⚠️ Revisa la carpeta de Spam si no lo encuentras</p>
             </div>
@@ -236,7 +236,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-xl">
-            Bienvenido a LamaBet
+            Bienvenido a LamaDice
           </DialogTitle>
         </DialogHeader>
 
@@ -367,7 +367,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                 <span className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
                   Confirmo que soy <span style={{ color: "#f0b616", fontWeight: 700 }}>mayor de 18 anos</span>, estoy comprometido con el{" "}
                   <span style={{ color: "#f0b616", fontWeight: 700 }}>juego justo</span> y acepto los{" "}
-                  <span style={{ color: "#f0b616", fontWeight: 700 }}>Terminos y Condiciones</span> de LamaBet.
+                  <span style={{ color: "#f0b616", fontWeight: 700 }}>Terminos y Condiciones</span> de LamaDice.
                 </span>
               </div>
 
