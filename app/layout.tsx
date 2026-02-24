@@ -9,6 +9,20 @@ import { LiveChat } from "@/components/live-chat"
 export const metadata: Metadata = {
   title: "LamaBet - Juego de Dados Online",
   description: "Juega dados con probabilidades configurables",
+  openGraph: {
+    title: "LamaBet - Juego de Dados Online",
+    description: "Juega dados con probabilidades configurables",
+    url: "https://www.lamadice.com",
+    siteName: "LamaBet",
+    images: [{ url: "https://www.lamadice.com/logo.png", width: 512, height: 512, alt: "LamaBet Logo" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "LamaBet - Juego de Dados Online",
+    description: "Juega dados con probabilidades configurables",
+    images: ["https://www.lamadice.com/logo.png"],
+  },
 }
 
 export default function RootLayout({
