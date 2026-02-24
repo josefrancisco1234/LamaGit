@@ -351,32 +351,25 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               </div>
 
               {/* Checkbox 18+ y términos */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div className="relative mt-0.5 flex-shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={termsAccepted}
-                    onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="sr-only"
-                    disabled={loading}
-                  />
-                  <div
-                    onClick={() => !loading && setTermsAccepted(v => !v)}
-                    className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
-                    style={{
-                      borderColor: termsAccepted ? "#f0b616" : "rgba(255,255,255,0.2)",
-                      background: termsAccepted ? "rgba(240,182,22,0.15)" : "transparent",
-                    }}
-                  >
-                    {termsAccepted && <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#f0b616" }} />}
-                  </div>
+              <div
+                className="flex items-start gap-3 cursor-pointer select-none"
+                onClick={() => !loading && setTermsAccepted(v => !v)}
+              >
+                <div
+                  className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                  style={{
+                    borderColor: termsAccepted ? "#f0b616" : "rgba(255,255,255,0.25)",
+                    background: termsAccepted ? "rgba(240,182,22,0.2)" : "transparent",
+                  }}
+                >
+                  {termsAccepted && <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#f0b616" }} />}
                 </div>
                 <span className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
                   Confirmo que soy <span style={{ color: "#f0b616", fontWeight: 700 }}>mayor de 18 anos</span>, estoy comprometido con el{" "}
                   <span style={{ color: "#f0b616", fontWeight: 700 }}>juego justo</span> y acepto los{" "}
                   <span style={{ color: "#f0b616", fontWeight: 700 }}>Terminos y Condiciones</span> de LamaBet.
                 </span>
-              </label>
+              </div>
 
               {error && (
                 <p className="text-sm text-destructive text-center">{error}</p>
