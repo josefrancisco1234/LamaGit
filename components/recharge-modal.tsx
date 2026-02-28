@@ -447,11 +447,11 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
       `}</style>
 
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="rm-content max-w-md p-0 gap-0">
-          <div className="relative z-10">
+        <DialogContent className="rm-content max-w-md p-0 gap-0 max-h-[90vh] flex flex-col">
+          <div className="relative z-10 flex flex-col min-h-0 flex-1">
 
             {/* HEADER */}
-            <div className="px-6 pt-6 pb-0">
+            <div className="px-6 pt-6 pb-0 flex-shrink-0">
               <DialogHeader className="pb-3">
                 <DialogTitle
                   className="text-center text-xl font-bold"
@@ -488,7 +488,7 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
               </div>
             </div>
 
-          <div className="p-6 pt-4 space-y-5">
+          <div className="p-6 pt-4 space-y-5 overflow-y-auto flex-1">
 
             {/* ======================== DEPOSITAR TAB ======================== */}
             {activeTab === "depositar" && state === "setup" && (
