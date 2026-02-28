@@ -297,8 +297,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
     if (!isValidPhone(phone)) { setError("Telefono invalido. Solo números (7-15 dígitos), puede iniciar con +"); return }
     if (!isValidEmail(email)) { setError("Email invalido"); return }
-    const pwdReqs = getPwdReqs(password)
-    if (!pwdReqs.every(r => r.ok)) { setError("La contrasena no cumple todos los requisitos"); return }
+    if (password.length < 6) { setError("La contrasena debe tener al menos 6 caracteres"); return }
 
     const username = (firstName + firstSurname).toLowerCase().replace(/[^a-z0-9]/g, '') + docNumber.slice(-4)
 
@@ -644,17 +643,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                       {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {touched.password && password.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {getPwdReqs(password).map(r => (
-                        <p key={r.text} className="text-xs flex items-center gap-1"
-                          style={{ color: r.ok ? '#22c55e' : '#ef4444' }}>
-                          {r.ok ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                          {r.text}
-                        </p>
-                      ))}
-                    </div>
-                  )}
                 </FieldRow>
 
                 <FieldRow>
