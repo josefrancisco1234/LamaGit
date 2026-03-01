@@ -21,15 +21,21 @@ export interface Database {
           id: string
           user_id: string
           balance: number
+          bonus_balance: number
+          total_wagered: number
           created_at: string
           updated_at: string
         }
         Insert: {
           user_id: string
           balance?: number
+          bonus_balance?: number
+          total_wagered?: number
         }
         Update: {
           balance?: number
+          bonus_balance?: number
+          total_wagered?: number
         }
       }
       messages: {

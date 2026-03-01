@@ -738,6 +738,27 @@ export function RechargeModal({ open, onOpenChange }: RechargeModalProps) {
                   </p>
                 </div>
 
+                {/* Bono pendiente */}
+                {Number(wallet?.bonus_balance ?? 0) > 0 && (
+                  <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(240,182,22,0.07)", border: "1px solid rgba(240,182,22,0.25)" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold" style={{ color: "#f0b616" }}>
+                        🎁 Bono S/ {formatBalance(Number(wallet?.bonus_balance ?? 0))}
+                      </span>
+                      <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        S/ {Number(wallet?.total_wagered ?? 0).toFixed(0)} / 250 apostados
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+                      <div className="h-1.5 rounded-full transition-all"
+                        style={{ width: `${Math.min(Number(wallet?.total_wagered ?? 0) / 250, 1) * 100}%`, background: "linear-gradient(90deg, #f0b616, #22c55e)" }} />
+                    </div>
+                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                      Apuesta S/ 250 en total para desbloquear el bono y añadirlo a tu saldo.
+                    </p>
+                  </div>
+                )}
+
                 {/* Monto */}
                 <div className="space-y-2">
                   <p className="text-xs" style={{ color: "#94a3b8", letterSpacing: "0.08em" }}>MONTO A RETIRAR</p>

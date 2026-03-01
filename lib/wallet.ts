@@ -303,6 +303,81 @@ export async function walletAdd(amount: number, userId?: string): Promise<number
   }
 }
 
+// =============================================================================
+// walletTrackWager - Registra apuesta y desbloquea bono si llega a S/250
+// =============================================================================
+/**
+ * Llama esto despues de cada apuesta real.
+ * Incrementa total_wagered. Si alcanza S/250 y hay bonus_balance > 0,
+ * transfiere el bono al balance real automaticamente.
+ * @returns { bonusUnlocked: boolean, bonusAmount: number }
+ */
+export async function walletTrackWager(betAmount: number, userId: string): Promise<{ bonusUnlocked: boolean; bonusAmount: number }> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    let accessToken = supabaseKey || ''
+    if (typeof window !== 'undefined') {
+      try {
+        const storageKey = `sb-${new URL(supabaseUrl || '').hostname.split('.')[0]}-auth-token`
+        const stored = localStorage.getItem(storageKey)
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          accessToken = parsed?.access_token || supabaseKey || ''
+        }
+      } catch (e) {}
+    }
+
+    const headers = {
+      'apikey': supabaseKey || '',
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    }
+
+    // Obtener wallet actual
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}&select=balance,bonus_balance,total_wagered`,
+      { headers }
+    )
+    if (!res.ok) return { bonusUnlocked: false, bonusAmount: 0 }
+    const data = await res.json()
+    const w = data?.[0]
+    if (!w) return { bonusUnlocked: false, bonusAmount: 0 }
+
+    const prevWagered = Number(w.total_wagered ?? 0)
+    const newWagered = Number((prevWagered + betAmount).toFixed(2))
+    const bonusBalance = Number(w.bonus_balance ?? 0)
+    const WAGER_GOAL = 250
+
+    // Determinar si se desbloquea el bono
+    const wasBelowGoal = prevWagered < WAGER_GOAL
+    const nowAboveGoal = newWagered >= WAGER_GOAL
+    const bonusUnlocked = wasBelowGoal && nowAboveGoal && bonusBalance > 0
+
+    // Construir el PATCH
+    const patch: Record<string, number> = { total_wagered: newWagered }
+    if (bonusUnlocked) {
+      patch.balance = Number((Number(w.balance) + bonusBalance).toFixed(2))
+      patch.bonus_balance = 0
+    }
+
+    await fetch(
+      `${supabaseUrl}/rest/v1/wallets?user_id=eq.${userId}`,
+      {
+        method: 'PATCH',
+        headers: { ...headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(patch),
+      }
+    )
+
+    return { bonusUnlocked, bonusAmount: bonusBalance }
+  } catch (e) {
+    console.error('[walletTrackWager] Error:', e)
+    return { bonusUnlocked: false, bonusAmount: 0 }
+  }
+}
+
 /**
  * Get wallet data (usa cliente Supabase - puede fallar en Vercel)
  */

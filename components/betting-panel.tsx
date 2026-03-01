@@ -27,7 +27,7 @@ import {
   isDemoMode,
   formatBalance,
 } from "@/lib/utils"
-import { walletAdd } from "@/lib/wallet"
+import { walletAdd, walletTrackWager } from "@/lib/wallet"
 import { processAffiliateCommission } from "@/lib/affiliates"
 import { saveGameResult } from "@/lib/game-history"
 import { useToast } from "@/hooks/use-toast"
@@ -181,13 +181,22 @@ export function BettingPanel() {
       if (won && !demo && userRef.current) {
         try {
           await walletAdd(payout, userRef.current.id)
-          await refreshWallet()
         } catch (error) {
           console.error("Error crediting winnings:", error)
         }
+        // Registrar apuesta para el bono
+        const { bonusUnlocked, bonusAmount } = await walletTrackWager(currentBet, userRef.current.id)
+        if (bonusUnlocked) {
+          toast({ title: "🎁 ¡Bono desbloqueado!", description: `S/ ${bonusAmount.toFixed(2)} de bono añadidos a tu saldo real.` })
+        }
+        await refreshWallet()
         saveGameResult({ userId: userRef.current.id, result: finalNumber, threshold: currentThreshold, betAmount: currentBet, won: true, payout })
       } else if (!demo && userRef.current) {
-        // Solo refrescar wallet para mostrar el balance actualizado
+        // Registrar apuesta para el bono
+        const { bonusUnlocked, bonusAmount } = await walletTrackWager(currentBet, userRef.current.id)
+        if (bonusUnlocked) {
+          toast({ title: "🎁 ¡Bono desbloqueado!", description: `S/ ${bonusAmount.toFixed(2)} de bono añadidos a tu saldo real.` })
+        }
         await refreshWallet()
         // Procesar comision de afiliado (1% al referidor si existe)
         processAffiliateCommission(userRef.current.id, currentBet)
